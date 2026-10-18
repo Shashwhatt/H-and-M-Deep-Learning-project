@@ -47,7 +47,8 @@ venv.bak/
 */.ipynb_checkpoints/*
 
 # H&M Project Data & Large Files (CSVs, Parquet, Images, etc.)
-data/
+data/*
+!data/.gitkeep
 raw/
 processed/
 *.csv
