@@ -23,3 +23,23 @@ def engineer_contextual_features(spark, transactions_path):
     df = df.withColumn("t_dat", F.to_timestamp("t_dat"))
     
     print("--- 1. Extracting Time-of-Purchase Features ---")
+    df = df.withColumn("purchase_year", F.year("t_dat")) \
+           .withColumn("purchase_month", F.month("t_dat")) \
+           .withColumn("purchase_day", F.dayofmonth("t_dat")) \
+           .withColumn("purchase_dow", F.dayofweek("t_dat")) \
+           .withColumn("purchase_hour", F.hour("t_dat"))
+           
+    print("--- 2. Calculating User Purchase Recency ---")
+    # Define window partitioned by customer ordered chronologically by transaction date
+    user_window = Window.partitionBy("customer_id").orderBy("t_dat")
+    
+    # Get the timestamp of the customer's previous transaction
+    df = df.withColumn("prev_t_dat", F.lag("t_dat", 1).over(user_window))
+    
+    # Calculate days since last purchase (default to 0 for a user's first recorded transaction)
+    df = df.withColumn(
+        "days_since_last_purchase",
+        F.when(F.col("prev_t_dat").isNull(), 0.0)
+         .otherwise(F.datediff(F.col("t_dat"), F.col("prev_t_dat")))
+    )
+    
