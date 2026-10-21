@@ -1,13 +1,13 @@
-from item_feature_config import UNKNOWN_TOKEN
-from load_articles import load_articles
-from extract_categories import extract_unique_categories
-from save_vocabularies import save_vocabularies
+from item_features.item_feature_config import ITEM_CATEGORICAL_FEATURES, UNKNOWN_TOKEN
+from item_features.load_articles import load_articles
+from item_features.extract_categories import extract_unique_categories
+from .save_vocabularies import save_vocabularies
 
 
 def create_vocabularies(categories):
     vocabularies = {}
 
-    for feature, values in categories.items():
+    for features, values in categories.items():
         unique_values = sorted(
             value for value in values
             if value != UNKNOWN_TOKEN
@@ -18,7 +18,7 @@ def create_vocabularies(categories):
         for index, value in enumerate(unique_values, start=1):
             vocabulary[value] = index
 
-        vocabularies[feature] = vocabulary
+        vocabularies[features] = vocabulary
 
     return vocabularies
     
@@ -34,5 +34,5 @@ if __name__ == "__main__":
 
     print("Vocabularies created successfully.")
 
-    for feature, vocabulary in vocabularies.items():
-        print(feature, ":", len(vocabulary))
+    for features, vocabulary in vocabularies.items():
+        print(features, ":", len(vocabulary))
