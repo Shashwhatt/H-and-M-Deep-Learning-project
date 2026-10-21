@@ -43,3 +43,30 @@ def engineer_contextual_features(spark, transactions_path):
          .otherwise(F.datediff(F.col("t_dat"), F.col("prev_t_dat")))
     )
     
+    print("--- 3. Calculating Product Popularity Metrics ---")
+    # Compute global historical popularity count per article
+    article_popularity = df.groupBy("article_id") \
+        .agg(F.count("customer_id").alias("total_article_popularity"))
+        
+    # Join global article popularity back to the main transaction log
+    df = df.join(article_popularity, on="article_id", how="left")
+    
+    return df
+
+if __name__ == "__main__":
+    spark = create_spark_session()
+    
+    input_transactions = "data/processed/transactions_clean.parquet"
+    output_engineered = "data/processed/transactions_engineered.parquet"
+    
+    try:
+        engineered_df = engineer_contextual_features(spark, input_transactions)
+        
+        print(f"Saving engineered feature dataset to: {output_engineered}")
+        engineered_df.write.mode("overwrite").parquet(output_engineered)
+        
+        print("Feature engineering pipeline completed successfully!")
+    except Exception as e:
+        print(f"Error executing feature engineering pipeline: {str(e)}")
+    finally:
+        spark.stop()
