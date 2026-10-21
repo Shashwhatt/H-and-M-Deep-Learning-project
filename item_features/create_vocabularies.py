@@ -1,6 +1,7 @@
 from item_feature_config import UNKNOWN_TOKEN
 from load_articles import load_articles
 from extract_categories import extract_unique_categories
+from save_vocabularies import save_vocabularies
 
 
 def create_vocabularies(categories):
@@ -20,7 +21,7 @@ def create_vocabularies(categories):
         vocabularies[feature] = vocabulary
 
     return vocabularies
-    return vocabularies
+    
 
 
 if __name__ == "__main__":
@@ -28,6 +29,8 @@ if __name__ == "__main__":
     articles = load_articles(file_path)
     categories = extract_unique_categories(articles)
     vocabularies = create_vocabularies(categories)
+
+    save_vocabularies(vocabularies, "item_features/vocabularies")
 
     print("Vocabularies created successfully.")
 
