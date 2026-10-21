@@ -1,4 +1,4 @@
-from item_feature_config import ITEM_CATEGORICAL_FEATURES, UNKNOWN_TOKEN
+from .item_feature_config import ITEM_CATEGORICAL_FEATURES, UNKNOWN_TOKEN
 
 
 def extract_unique_categories(df):
