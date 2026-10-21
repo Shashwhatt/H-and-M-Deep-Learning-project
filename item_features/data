@@ -1,0 +1,11 @@
+# Item Features
+
+This module handles product metadata features for the H&M recommendation system.
+
+Selected categorical features:
+- product_type_name
+- product_group_name
+- colour_group_name
+- department_name
+- index_name
+The module prepares these product attributes for embedding-based recommendation models.
