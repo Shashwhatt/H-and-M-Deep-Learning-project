@@ -1,0 +1,6 @@
+{
+  "[UNK]": 0,
+  "[MISSING]": 1,
+  "ACTIVE": 2,
+  "PRE-CREATE": 3
+}
