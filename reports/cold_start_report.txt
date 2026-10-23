@@ -1,0 +1,22 @@
+H&M Cold-Start Preparation Report
+Customer records: 1371980
+Unique customer IDs: 1371980
+Duplicate customer IDs: 0
+Article records: 105542
+Unique article IDs: 105542
+Duplicate article IDs: 0
+
+Note: Interaction-based cold-start counts require transactions_train.csv.
+
+Top product groups:
+product_group_name
+Garment Upper body    42741
+Garment Lower body    19812
+Garment Full body     13292
+Accessories           11158
+Underwear              5490
+Shoes                  5283
+Swimwear               3127
+Socks & Tights         2442
+Nightwear              1899
+Unknown                 121
