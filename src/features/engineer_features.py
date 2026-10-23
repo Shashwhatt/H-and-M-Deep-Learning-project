@@ -65,7 +65,7 @@ if __name__ == "__main__":
         print(f"Saving engineered feature dataset to: {output_engineered}")
         engineered_df.write.mode("overwrite").parquet(output_engineered)
         
-        print("Feature engineering pipeline completed successfully!")
+        print("Feature engineering pipeline completed and executed successfully!")
     except Exception as e:
         print(f"Error executing feature engineering pipeline: {str(e)}")
     finally:
