@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+reports/*
+!reports/.gitkeep
+@(
+    ".venv/"
+    "__pycache__/"
+    "*.py[cod]"
+    "data/raw/"
+    "data/processed/"
+) | Add-Content .gitignore
