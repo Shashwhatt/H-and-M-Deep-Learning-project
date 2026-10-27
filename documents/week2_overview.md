@@ -1,0 +1,3 @@
+﻿# Week 2 Overview
+
+Week 2 will focus on data preprocessing and feature engineering for the H&M Context-Aware Neural Recommendation Engine. The planned work includes validating the customer, article, and transaction datasets, preparing categorical feature vocabularies, processing purchase histories, converting features into model-ready inputs, and testing the preprocessing pipeline. The goal is to prepare reliable customer and item features for integration into the two-tower recommendation model. This overview is a proposed plan and can be updated according to the team's final task assignments.
