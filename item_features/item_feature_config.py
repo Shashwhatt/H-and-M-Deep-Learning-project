@@ -2,6 +2,7 @@ UNKNOWN_TOKEN = "<UNK>"
 
 ITEM_CATEGORICAL_FEATURES = [
     "product_type_name",
+    "product_group_name",
     "graphical_appearance_name",
     "colour_group_name",
     "department_name",

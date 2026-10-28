@@ -1,9 +1,7 @@
-from item_features.item_feature_config import ITEM_CATEGORICAL_FEATURES, UNKNOWN_TOKEN
-from item_features.load_articles import load_articles
-from item_features.extract_categories import extract_unique_categories
+from .item_feature_config import ITEM_CATEGORICAL_FEATURES, UNKNOWN_TOKEN
+from .load_articles import load_articles
+from .extract_categories import extract_unique_categories
 from .save_vocabularies import save_vocabularies
-
-
 def create_vocabularies(categories):
     vocabularies = {}
 
