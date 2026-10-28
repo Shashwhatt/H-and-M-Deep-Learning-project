@@ -1,0 +1,20 @@
+# Core Data Processing & Utilities
+numpy>=1.22.0
+pandas>=1.4.0
+pyspark>=3.3.0
+
+# Deep Learning & Recommendation
+tensorflow>=2.10.0
+tensorflow-recommenders>=0.7.0
+scikit-learn>=1.1.0
+
+# Feature Store & Caching
+redis>=4.3.0
+
+# Workflow Orchestration
+apache-airflow>=2.4.0
+
+# Backend API
+fastapi>=0.85.0
+uvicorn>=0.18.0
+pydantic>=1.10.0
