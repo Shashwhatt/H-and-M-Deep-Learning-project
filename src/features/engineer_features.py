@@ -43,7 +43,7 @@ def engineer_contextual_features(spark, transactions_path):
          .otherwise(F.datediff(F.col("t_dat"), F.col("prev_t_dat")))
     )
     
-    print("Step 3. Calculating Product Popularity Metrics ---")
+    print("Step 3. Calculating the Product Popularity Metrics ---")
     # Compute global historical popularity count per article
     article_popularity = df.groupBy("article_id") \
         .agg(F.count("customer_id").alias("total_article_popularity"))
