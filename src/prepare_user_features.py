@@ -1,12 +1,15 @@
-
 import pandas as pd
 
 from src.user_feature_vocabularies import (
+    OUTPUT_DIR,
     USER_CATEGORICAL_FEATURES,
     UNKNOWN_TOKEN,
     MISSING_TOKEN,
     build_vocabulary,
+    load_vocabulary,
+    save_vocabulary,
 )
+
 
 REQUIRED_COLUMNS = [
     "customer_id",
@@ -16,13 +19,14 @@ REQUIRED_COLUMNS = [
 ]
 
 
-def prepare_user_features(customers: pd.DataFrame):
+def prepare_user_features(customers, vocabularies=None):
     """Validate and encode customer features for model input."""
 
     missing_columns = [
         column for column in REQUIRED_COLUMNS
         if column not in customers.columns
     ]
+
     if missing_columns:
         raise ValueError(
             f"Required customer columns are missing: {missing_columns}"
@@ -30,7 +34,6 @@ def prepare_user_features(customers: pd.DataFrame):
 
     result = customers[REQUIRED_COLUMNS].copy()
 
-    # Preserve customer IDs as strings and reject invalid or duplicate IDs.
     result["customer_id"] = (
         result["customer_id"].astype("string").str.strip()
     )
@@ -46,36 +49,42 @@ def prepare_user_features(customers: pd.DataFrame):
     if result["customer_id"].duplicated().any():
         raise ValueError("Duplicate customer IDs were found.")
 
-    vocabularies = {}
+    if vocabularies is None:
+        vocabularies = {}
 
-    # Build deterministic mappings for categorical customer features.
+        for feature in USER_CATEGORICAL_FEATURES:
+            vocabulary = build_vocabulary(result[feature])
+            vocabularies[feature] = vocabulary
+
     for feature in USER_CATEGORICAL_FEATURES:
+        if feature not in vocabularies:
+            raise ValueError(
+                f"Vocabulary missing for feature: {feature}"
+            )
+
         values = result[feature].astype("string").str.strip()
         values = values.mask(values.eq(""))
-
-        vocabulary = build_vocabulary(values)
-        vocabularies[feature] = vocabulary
 
         values_for_encoding = values.fillna(MISSING_TOKEN)
 
         result[f"{feature}_id"] = (
             values_for_encoding
-            .map(vocabulary)
-            .fillna(vocabulary[UNKNOWN_TOKEN])
+            .map(vocabularies[feature])
+            .fillna(vocabularies[feature][UNKNOWN_TOKEN])
             .astype("int64")
         )
 
-    # Convert age to numeric and identify missing/invalid values.
     age = pd.to_numeric(result["age"], errors="coerce")
+
     result["age_missing"] = age.isna().astype("int64")
 
     median_age = age.median()
+
     if pd.isna(median_age):
         median_age = 0.0
 
     result["age"] = age.fillna(median_age).astype("float64")
 
-    # Return only model-ready features and the mappings used to encode them.
     model_features = result[
         [
             "customer_id",
@@ -87,3 +96,24 @@ def prepare_user_features(customers: pd.DataFrame):
     ].copy()
 
     return model_features, vocabularies
+
+
+def prepare_training_features(customers):
+    """Build and save vocabularies using training customer data."""
+
+    features, vocabularies = prepare_user_features(customers)
+
+    for feature, vocabulary in vocabularies.items():
+        save_vocabulary(vocabulary, feature, OUTPUT_DIR)
+
+    return features, vocabularies
+
+def prepare_inference_features(customers):
+    """Load saved training vocabularies and encode new customers."""
+
+    vocabularies = {
+        feature: load_vocabulary(feature, OUTPUT_DIR)
+        for feature in USER_CATEGORICAL_FEATURES
+    }
+
+    return prepare_user_features(customers, vocabularies)

@@ -1,4 +1,3 @@
-
 import json
 from pathlib import Path
 
@@ -26,17 +25,58 @@ def build_vocabulary(series):
     values = values.mask(values.eq(""))
     categories = sorted(values.dropna().unique().tolist())
 
-    # Reserve ID 0 for categories not seen during vocabulary creation.
     vocabulary = {UNKNOWN_TOKEN: 0}
 
-    # Missing values receive their own ID when present in the data.
     if values.isna().any():
         vocabulary[MISSING_TOKEN] = 1
 
     for category in categories:
-        # Prevent special tokens from being assigned twice.
         if category not in vocabulary:
             vocabulary[category] = len(vocabulary)
+
+    return vocabulary
+
+
+def save_vocabulary(vocabulary, feature, output_dir=OUTPUT_DIR):
+    """Save a categorical vocabulary as a JSON file."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    output_path = output_dir / f"{feature}_vocabulary.json"
+
+    with output_path.open("w", encoding="utf-8") as file:
+        json.dump(vocabulary, file, indent=2, ensure_ascii=False)
+
+    return output_path
+
+
+def load_vocabulary(feature, output_dir=OUTPUT_DIR):
+    """Load and validate a saved categorical vocabulary."""
+    output_dir = Path(output_dir)
+    input_path = output_dir / f"{feature}_vocabulary.json"
+
+    if not input_path.exists():
+        raise FileNotFoundError(
+            f"Vocabulary file not found: {input_path}"
+        )
+
+    with input_path.open("r", encoding="utf-8") as file:
+        vocabulary = json.load(file)
+
+    if not isinstance(vocabulary, dict):
+        raise ValueError("Vocabulary must be a JSON object.")
+
+    if vocabulary.get(UNKNOWN_TOKEN) != 0:
+        raise ValueError("[UNK] must have ID 0.")
+
+    if len(vocabulary.values()) != len(set(vocabulary.values())):
+        raise ValueError("Vocabulary IDs must be unique.")
+
+    if not all(isinstance(value, int) for value in vocabulary.values()):
+        raise ValueError("Vocabulary IDs must be integers.")
+
+    if sorted(vocabulary.values()) != list(range(len(vocabulary))):
+        raise ValueError("Vocabulary IDs must be contiguous from 0.")
 
     return vocabulary
 
@@ -55,23 +95,17 @@ def main():
         for feature in USER_CATEGORICAL_FEATURES
         if feature not in customers.columns
     ]
+
     if missing_columns:
         raise ValueError(
             f"Required customer columns are missing: {missing_columns}"
         )
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
     for feature in USER_CATEGORICAL_FEATURES:
         vocabulary = build_vocabulary(customers[feature])
-        output_path = OUTPUT_DIR / f"{feature}_vocabulary.json"
-
-        with output_path.open("w", encoding="utf-8") as file:
-            json.dump(vocabulary, file, indent=2, ensure_ascii=False)
+        output_path = save_vocabulary(vocabulary, feature)
 
         print(f"Created vocabulary for {feature}: {len(vocabulary)} entries")
         print(f"Saved to: {output_path}")
-
-
 if __name__ == "__main__":
     main()
