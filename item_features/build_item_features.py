@@ -5,12 +5,20 @@ from .create_vocabularies import create_vocabularies
 from .encode_categories import encode_categories
 
 
-def build_item_features(csv_path):
+def build_item_features(csv_path, vocabularies=None):
+    """
+    Build item features.
+
+    If vocabularies are provided, reuse saved mappings.
+    Otherwise, generate vocabularies from the input dataset.
+    """
+
     df = load_articles(csv_path)
     df = handle_missing(df)
 
-    categories = extract_unique_categories(df)
-    vocabularies = create_vocabularies(categories)
+    if vocabularies is None:
+        categories = extract_unique_categories(df)
+        vocabularies = create_vocabularies(categories)
 
     encoded_df = encode_categories(df, vocabularies)
 

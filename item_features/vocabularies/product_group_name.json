@@ -1,0 +1,15 @@
+{
+  "<UNK>": 0,
+  "Accessories": 1,
+  "Garment Full body": 2,
+  "Garment Lower body": 3,
+  "Garment Upper body": 4,
+  "Items": 5,
+  "Nightwear": 6,
+  "Shoes": 7,
+  "Socks & Tights": 8,
+  "Swimwear": 9,
+  "Underwear": 10,
+  "Underwear/nightwear": 11,
+  "Unknown": 12
+}
