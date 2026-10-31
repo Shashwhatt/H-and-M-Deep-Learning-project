@@ -58,56 +58,110 @@ def load_id_vocabulary(file_path, column):
 # READ INTERACTIONS IN CHUNKS
 # ==========================================
 
-def interaction_generator(file_path, max_rows):
+
+def interaction_generator(file_path, max_rows, random_sample=False):
     rows_read = 0
+    total_train_rows = 31_548_013
 
-    for chunk in pd.read_csv(
-        file_path,
-        usecols=["customer_id", "article_id"],
-        dtype={
-            "customer_id": str,
-            "article_id": str
-        },
-        chunksize=CHUNK_SIZE
-    ):
+    if random_sample:
+        sample_fraction = min(max_rows / total_train_rows, 1.0)
 
-        remaining = max_rows - rows_read
+        for chunk_number, chunk in enumerate(
+            pd.read_csv(
+                file_path,
+                usecols=["customer_id", "article_id"],
+                dtype={
+                    "customer_id": str,
+                    "article_id": str
+                },
+                chunksize=CHUNK_SIZE
+            )
+        ):
+            remaining = max_rows - rows_read
 
-        if remaining <= 0:
-            break
+            if remaining <= 0:
+                break
 
-        chunk = chunk.iloc[:remaining]
+            chunk = chunk.dropna(
+                subset=["customer_id", "article_id"]
+            )
 
-        chunk = chunk.dropna(
-            subset=["customer_id", "article_id"]
-        )
+            sample_size = min(
+                remaining,
+                round(len(chunk) * sample_fraction)
+            )
 
-        rows_read += len(chunk)
+            if sample_size == 0:
+                continue
 
-        if not chunk.empty:
+            sampled = chunk.sample(
+                n=sample_size,
+                random_state=42 + chunk_number
+            )
+
+            rows_read += len(sampled)
+
             yield {
-                "customer_id": chunk["customer_id"].to_numpy(),
-                "article_id": chunk["article_id"].to_numpy()
+                "customer_id": sampled["customer_id"].to_numpy(),
+                "article_id": (
+                    sampled["article_id"]
+                    .str.strip()
+                    .str.zfill(10)
+                    .to_numpy()
+                )
             }
 
-        if rows_read >= max_rows:
-            break
+    else:
+        for chunk in pd.read_csv(
+            file_path,
+            usecols=["customer_id", "article_id"],
+            dtype={
+                "customer_id": str,
+                "article_id": str
+            },
+            chunksize=CHUNK_SIZE
+        ):
+            remaining = max_rows - rows_read
+
+            if remaining <= 0:
+                break
+
+            chunk = chunk.iloc[:remaining].dropna(
+                subset=["customer_id", "article_id"]
+            )
+
+            rows_read += len(chunk)
+
+            if not chunk.empty:
+                yield {
+                    "customer_id": chunk["customer_id"].to_numpy(),
+                    "article_id": (
+                        chunk["article_id"]
+                        .str.strip()
+                        .str.zfill(10)
+                        .to_numpy()
+                    )
+                }
 
 
-def create_dataset(file_path, max_rows):
+
+
+def create_dataset(file_path, max_rows, random_sample=False):
     output_signature = {
         "customer_id": tf.TensorSpec(
-            shape=(None,),
-            dtype=tf.string
+            shape=(None,), dtype=tf.string
         ),
         "article_id": tf.TensorSpec(
-            shape=(None,),
-            dtype=tf.string
+            shape=(None,), dtype=tf.string
         )
     }
 
     dataset = tf.data.Dataset.from_generator(
-        lambda: interaction_generator(file_path, max_rows),
+        lambda: interaction_generator(
+            file_path,
+            max_rows,
+            random_sample
+        ),
         output_signature=output_signature
     )
 
@@ -117,7 +171,6 @@ def create_dataset(file_path, max_rows):
         .batch(BATCH_SIZE)
         .prefetch(tf.data.AUTOTUNE)
     )
-
 
 # ==========================================
 # TWO-TOWER RETRIEVAL MODEL
@@ -201,9 +254,10 @@ def main():
     print("\nPreparing training dataset...")
 
     train_dataset = create_dataset(
-        TRAIN_FILE,
-        MAX_TRAIN_ROWS
-    )
+    TRAIN_FILE,
+    MAX_TRAIN_ROWS,
+    random_sample=True
+)
 
     print("Preparing validation dataset...")
 
