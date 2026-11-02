@@ -31,7 +31,7 @@ class HMQueryTower(tf.keras.Model):
         ])
 
     def call(self, inputs):
-        # Extract and embed user ID
+        # Extract and embed the user ID
         customer_id = inputs.get("customer_id")
         user_embed = self.user_embedding(customer_id)
         
