@@ -58,7 +58,7 @@ class HMCandidateTower(tf.keras.Model):
             )
         ])
         
-        # Dense projection layers for item features
+        # Dense projection layers for the item features
         self.dense_layer = tf.keras.Sequential([
             tf.keras.layers.Dense(64, activation="relu"),
             tf.keras.layers.Dense(embedding_dim)
@@ -83,7 +83,7 @@ class HMTTwoTowerModel(tfrs.Model):
     def __init__(self, unique_customer_ids, unique_article_ids, parsed_candidates_ds, embedding_dim=32):
         super().__init__()
         
-        # Initialize individual towers
+        # Initialize the individual towers
         self.query_model = HMQueryTower(unique_customer_ids, embedding_dim)
         self.candidate_model = HMCandidateTower(unique_article_ids, embedding_dim)
         
