@@ -13,7 +13,7 @@ class HMQueryTower(tf.keras.Model):
     def __init__(self, unique_customer_ids, embedding_dim=32):
         super().__init__()
         
-        # User ID embedding layer with StringLookup preprocessing
+        # User ID embedding layer which has StringLookup preprocessing
         self.user_embedding = tf.keras.Sequential([
             tf.keras.layers.StringLookup(
                 vocabulary=unique_customer_ids, mask_token=None
