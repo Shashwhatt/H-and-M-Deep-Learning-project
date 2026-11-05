@@ -1,12 +1,11 @@
-# Byte-compiled / optimized / DLL files
-__pycache__
+
+# Python bytecode and compiled files
+__pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
 
-# Distribution / packaging
+# Python packaging and build files
 bin/
 build/
 develop-eggs/
@@ -26,48 +25,74 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual Environments
+# Virtual environments and secrets
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
 
-# IDEs & Editors
+# IDEs and editors
 .vscode/
 .idea/
 *.swp
 *.swo
 .DS_Store
 
-# Jupyter Notebooks & Checkpoints
-.ipynb_checkpoints
-*/.ipynb_checkpoints/*
+# Jupyter notebooks and checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
 
-# H&M Project Data & Large Files (CSVs, Parquet, Images, etc.)
+# H&M project data
 data/*
 !data/.gitkeep
 raw/
 processed/
-*.csv
 *.parquet
 *.h5
 *.zip
 images/
 
-# Deep Learning Model Checkpoints & Artifacts
+# Allow tracked-style sample data to be added
+!data/sample/
+!data/sample/**
+!data/sample_customers.csv
+
+# Keep original/private CSV datasets out of Git
+*.csv
+
+# Re-allow sample CSV files after the global CSV ignore rule
+!data/sample/
+!data/sample/**
+!data/sample_customers.csv
+
+# Allow the team sample files and sample folder
+!data/sample/
+!data/sample/**
+
+# Raw and processed data folders
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Model checkpoints and generated artifacts
 models/checkpoints/
 saved_model/
 runs/
 tensorboard_logs/
 
-# Apache Airflow & Database Files
+# Apache Airflow and database files
 airflow.db
 airflow.cfg
 logs/
 plugins/
 
-# Redis Persistence File
+# Redis persistence
 dump.rdb
+
+# Reports: keep the folder placeholder and committed reports
+reports/*
+!reports/.gitkeep
