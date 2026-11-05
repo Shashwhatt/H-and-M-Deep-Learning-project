@@ -1,4 +1,3 @@
-
 # Python bytecode and compiled files
 __pycache__/
 *.py[cod]
@@ -55,7 +54,7 @@ processed/
 *.zip
 images/
 
-# Allow tracked-style sample data to be added
+# Sample data
 !data/sample/
 !data/sample/**
 !data/sample_customers.csv
@@ -63,14 +62,10 @@ images/
 # Keep original/private CSV datasets out of Git
 *.csv
 
-# Re-allow sample CSV files after the global CSV ignore rule
+# Allow sample CSV files
 !data/sample/
 !data/sample/**
 !data/sample_customers.csv
-
-# Allow the team sample files and sample folder
-!data/sample/
-!data/sample/**
 
 # Raw and processed data folders
 data/raw/*
@@ -79,7 +74,7 @@ data/processed/*
 !data/processed/.gitkeep
 
 # Model checkpoints and generated artifacts
-models/checkpoints/
+models/
 saved_model/
 runs/
 tensorboard_logs/
@@ -93,6 +88,6 @@ plugins/
 # Redis persistence
 dump.rdb
 
-# Reports: keep the folder placeholder and committed reports
+# Reports
 reports/*
 !reports/.gitkeep
