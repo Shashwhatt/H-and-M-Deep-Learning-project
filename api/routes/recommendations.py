@@ -15,9 +15,9 @@ router = APIRouter(
 
 
 def get_recommendation_service() -> RecommendationService:
-    raise NotImplementedError(
-        "Service initialization will be configured in the main application."
-    )
+    from api.services.redis_service import RedisService
+
+    return RecommendationService(RedisService())
 
 
 @router.post("/", response_model=RecommendationResponse)
