@@ -164,14 +164,31 @@ def train_model(
 
     return model, history
 
-def save_training_results(model, history):
-    """Save trained model weights and training history."""
+def save_training_results(
+    model,
+    history,
+    unique_customer_ids,
+    unique_article_ids,
+):
+    """Save trained model weights, vocabularies and training history."""
+
+    import json
 
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
     # Save model weights
     weights_path = MODEL_DIR / "two_tower.weights.h5"
     model.save_weights(weights_path)
+
+    # Save customer vocabulary
+    customer_vocab_path = MODEL_DIR / "customer_vocabulary.json"
+    with open(customer_vocab_path, "w", encoding="utf-8") as file:
+        json.dump(unique_customer_ids, file, indent=2)
+
+    # Save article vocabulary
+    article_vocab_path = MODEL_DIR / "article_vocabulary.json"
+    with open(article_vocab_path, "w", encoding="utf-8") as file:
+        json.dump(unique_article_ids, file, indent=2)
 
     # Save training history
     history_df = pd.DataFrame(history.history)
@@ -180,6 +197,8 @@ def save_training_results(model, history):
 
     print("\nTraining results saved successfully!")
     print(f"Model weights: {weights_path}")
+    print(f"Customer vocabulary: {customer_vocab_path}")
+    print(f"Article vocabulary: {article_vocab_path}")
     print(f"Training history: {history_path}")
 
 
@@ -208,7 +227,12 @@ def main():
     )
 
     # Step 4: Save results
-    save_training_results(model, history)
+    save_training_results(
+    model,
+    history,
+    unique_customer_ids,
+    unique_article_ids,
+)
 
     print("\n===== TRAINING PIPELINE COMPLETED =====")
 

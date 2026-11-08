@@ -1,3 +1,4 @@
+from functools import lru_cache
 
 from fastapi import APIRouter, HTTPException
 
@@ -6,6 +7,7 @@ from api.schemas.recommendation import (
     RecommendationResponse,
 )
 from api.services.recommendation_service import RecommendationService
+from api.services.redis_service import RedisService
 
 
 router = APIRouter(
@@ -14,10 +16,10 @@ router = APIRouter(
 )
 
 
+@lru_cache(maxsize=1)
 def get_recommendation_service() -> RecommendationService:
-    from api.services.redis_service import RedisService
-
-    return RecommendationService(RedisService())
+    redis_service = RedisService()
+    return RecommendationService(redis_service)
 
 
 @router.post("/", response_model=RecommendationResponse)
@@ -26,11 +28,20 @@ def recommend_products(
 ):
     try:
         service = get_recommendation_service()
+
         return service.get_recommendations(
             user_id=request.user_id,
             top_k=request.top_k,
         )
-    except NotImplementedError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except (RuntimeError, OSError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=str(exc),
+        ) from exc
