@@ -1,0 +1,7 @@
+﻿customer_id,club_member_status,fashion_news_frequency
+C001,ACTIVE,Regularly
+C002,ACTIVE,NONE
+C003,PRE-CREATE,Regularly
+C004,,NONE
+C005,ACTIVE,
+C006,PRE-CREATE,Monthly
