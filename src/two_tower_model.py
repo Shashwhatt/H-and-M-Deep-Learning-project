@@ -6,7 +6,7 @@ import tensorflow as tf
 
 
 class HMQueryTower(tf.keras.Model):
-    """Converts customer IDs into customer embeddings."""
+    """Converts the customer IDs into customer embeddings."""
 
     def __init__(self, customer_ids, embedding_dim=32):
         super().__init__()
