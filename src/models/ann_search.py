@@ -4,7 +4,7 @@ import json
 import os
 
 def populate_redis_cache():
-    print("--- Connecting to Redis Feature Store ---")
+    print("--- Connecting to the Redis Feature Store ---")
     # Connect to local Redis instance
     r = redis.Redis(host='localhost', port=6379, decode_responses=True)
     
