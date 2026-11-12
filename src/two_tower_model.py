@@ -90,3 +90,46 @@ class HMTwoTowerModel(tf.keras.Model):
         )
 
         return scores
+
+import h5py
+
+
+def load_serving_weights(model, checkpoint_path):
+    """Load trained tower weights directly from the HDF5 checkpoint."""
+
+    def load_tower(tower, group_path, h5_file):
+        embedding = h5_file[
+            f"{group_path}/layers/sequential/layers/embedding/vars/0"
+        ][()]
+
+        dense1_kernel = h5_file[
+            f"{group_path}/layers/sequential_1/layers/dense/vars/0"
+        ][()]
+        dense1_bias = h5_file[
+            f"{group_path}/layers/sequential_1/layers/dense/vars/1"
+        ][()]
+
+        dense2_kernel = h5_file[
+            f"{group_path}/layers/sequential_1/layers/dense_1/vars/0"
+        ][()]
+        dense2_bias = h5_file[
+            f"{group_path}/layers/sequential_1/layers/dense_1/vars/1"
+        ][()]
+
+        tower.embedding.layers[1].set_weights([embedding])
+
+        tower.dense.layers[0].set_weights([
+            dense1_kernel,
+            dense1_bias
+        ])
+
+        tower.dense.layers[1].set_weights([
+            dense2_kernel,
+            dense2_bias
+        ])
+
+    with h5py.File(checkpoint_path, "r") as f:
+        load_tower(model.query_tower, "query_tower", f)
+        load_tower(model.candidate_tower, "layers/hm_candidate_tower", f)
+
+    print("SUCCESS: Customer and article tower weights loaded!")

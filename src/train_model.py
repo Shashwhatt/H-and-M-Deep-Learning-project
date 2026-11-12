@@ -1,4 +1,4 @@
-
+﻿
 import os
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
@@ -7,7 +7,7 @@ import pandas as pd
 import tensorflow as tf
 import tensorflow_recommenders as tfrs
 
-from two_tower_model import HMQueryTower, HMCandidateTower
+from two_tower_model import HMQueryTower, HMCandidateTower, HMTwoTowerModel
 
 
 # ==========================================
@@ -20,7 +20,7 @@ ARTICLES_FILE = "data/processed/articles.csv"
 TRAIN_FILE = "data/processed/train_interactions.csv"
 VALIDATION_FILE = "data/processed/validation_interactions.csv"
 
-MODEL_DIR = Path("models")
+MODEL_DIR = Path(os.environ.get("MODEL_OUTPUT_DIR", "models"))
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 EMBEDDING_DIM = 32
@@ -301,8 +301,31 @@ def main():
         callbacks=[checkpoint_callback]
     )
 
-    # Save final model weights
-    model.save_weights(
+    # Save final weights in serving-compatible format.
+    print("\nPreparing serving model...")
+
+    serving_model = HMTwoTowerModel(
+        customer_ids,
+        article_ids,
+        embedding_dim=EMBEDDING_DIM,
+    )
+
+    sample = {
+        "customer_id": tf.constant([customer_ids[0]]),
+        "article_id": tf.constant([article_ids[0]]),
+    }
+
+    serving_model(sample)
+
+    serving_model.query_tower.set_weights(
+        model.query_tower.get_weights()
+    )
+
+    serving_model.candidate_tower.set_weights(
+        model.candidate_tower.get_weights()
+    )
+
+    serving_model.save_weights(
         str(MODEL_DIR / "two_tower.weights.h5")
     )
 
@@ -321,3 +344,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
