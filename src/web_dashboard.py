@@ -648,14 +648,12 @@ HTML_PAGE = """<!DOCTYPE html>
         </div>
       </a>
       <div class="header-status">
-        <div><span class="status-dot"></span>Two-Tower Recommender Online</div>
-        <div><strong>Dataset:</strong> 1.37M Customers • 105.5K Articles</div>
+        <div><strong>Catalog:</strong> 1.37M Customers • 105.5K Articles</div>
       </div>
     </div>
     <div class="nav-tabs">
       <div class="nav-tab active" onclick="switchTab('recs', this)">Personalized Recommendations</div>
       <div class="nav-tab" onclick="switchTab('catalog', this)">Catalog Explorer</div>
-      <div class="nav-tab" onclick="switchTab('architecture', this)">Model Architecture</div>
     </div>
   </header>
 
@@ -668,12 +666,10 @@ HTML_PAGE = """<!DOCTYPE html>
         
         <div class="input-row">
           <input type="text" id="cidInput" class="cid-input" placeholder="Paste or type Customer ID hex hash..." value="00000dbacae5abe5e23885899a1fa44253a17956c6d1c3d25f88aa139fdfc657">
-          <select id="topKSelect" class="select-topk">
-            <option value="4">Top 4 Articles</option>
-            <option value="8" selected>Top 8 Articles</option>
-            <option value="12">Top 12 Articles</option>
-            <option value="16">Top 16 Articles</option>
-          </select>
+          <div style="display:flex; align-items:center; gap:8px; background:white; border:1px solid #CCC; border-radius:8px; padding:0 14px;">
+            <label for="topKInput" style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:var(--muted); white-space:nowrap;">Count:</label>
+            <input type="number" id="topKInput" min="1" max="50" value="8" style="width:65px; padding:14px 4px; border:none; font-size:14px; font-weight:700; text-align:center; outline:none;" placeholder="8">
+          </div>
           <button class="btn-search" onclick="fetchRecs()">Get Recommendations</button>
         </div>
 
@@ -728,44 +724,6 @@ HTML_PAGE = """<!DOCTYPE html>
       </div>
       <div class="products-grid" id="catalogGrid"></div>
     </div>
-
-    <!-- TAB 3: MODEL ARCHITECTURE -->
-    <div id="tab-architecture" class="view-panel">
-      <div class="results-heading">
-        <span>End-to-End System Pipeline</span>
-        <span class="results-count">Project 3 4-Week Technical Stack</span>
-      </div>
-      <div class="arch-card">
-        <div class="arch-step">
-          <div class="step-num">1</div>
-          <div class="step-body">
-            <h4>Distributed Data Processing &amp; Vocabularies (Week 1)</h4>
-            <p>Apache PySpark processes 1.37M customer profiles, 105.5K articles, and multi-year interaction logs. Resolves missing values via dedicated tokens ([UNK], [MISSING]) and generates deterministic string lookup vocabularies.</p>
-          </div>
-        </div>
-        <div class="arch-step">
-          <div class="step-num">2</div>
-          <div class="step-body">
-            <h4>Two-Tower Neural Network Architecture (Week 2)</h4>
-            <p>TensorFlow Recommenders (TFRS) decouples representations into a <strong>Query Tower</strong> (customer context) and a <strong>Candidate Tower</strong> (article context), projecting them into a shared 32-dimensional embedding space trained with in-batch negative sampling.</p>
-          </div>
-        </div>
-        <div class="arch-step">
-          <div class="step-num">3</div>
-          <div class="step-body">
-            <h4>Redis Low-Latency Feature Store &amp; ANN Index (Week 3)</h4>
-            <p>Pre-computed customer profiles and item vectors are cached in Redis. The Approximate Nearest Neighbor (ANN) Inverted File Index clusters embeddings into Voronoi cells, reducing candidate search complexity from O(N) to sub-linear O((P/C)*N).</p>
-          </div>
-        </div>
-        <div class="arch-step">
-          <div class="step-num">4</div>
-          <div class="step-body">
-            <h4>FastAPI Serving &amp; Airflow Pipeline Scheduling (Week 4)</h4>
-            <p>Production FastAPI microservice delivers real-time top-K recommendations at > 3,000 RPS. Apache Airflow orchestrates weekly model retraining (hm_weekly_model_retraining) and daily embedding synchronization (hm_daily_embedding_update).</p>
-          </div>
-        </div>
-      </div>
-    </div>
   </main>
 
   <footer>
@@ -807,7 +765,8 @@ HTML_PAGE = """<!DOCTYPE html>
 
     async function fetchRecs() {
       const cid = document.getElementById("cidInput").value.trim();
-      const topK = document.getElementById("topKSelect").value;
+      const topKInput = document.getElementById("topKInput");
+      const topK = parseInt(topKInput.value) || 8;
       const loader = document.getElementById("recLoader");
       const grid = document.getElementById("productsGrid");
 
