@@ -20,7 +20,7 @@ ARTICLE_CSV = BASE_DIR / "data" / "processed" / "articles.csv"
 CUSTOMER_CSV = BASE_DIR / "data" / "processed" / "customers.csv"
 ANN_INDEX_PATH = BASE_DIR / "models" / "ann_index.npz"
 
-PORT = 8080
+PORT = int(os.environ.get("PORT", sys.argv[1] if len(sys.argv) > 1 else 8501))
 
 # Pre-load article metadata dictionary (first 5,000 articles for instant lookups)
 ARTICLE_META = {}
