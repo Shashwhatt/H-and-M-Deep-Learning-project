@@ -1,0 +1,15 @@
+
+.venv
+.git
+data
+models
+reports
+documents
+item_features
+tests
+src
+*.csv
+*.h5
+airflow/dags
+airflow/logs
+airflow/plugins
