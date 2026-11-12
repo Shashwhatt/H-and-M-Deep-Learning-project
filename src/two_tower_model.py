@@ -30,7 +30,8 @@ class HMQueryTower(tf.keras.Model):
     def call(self, inputs):
         customer_ids = inputs["customer_id"]
         embeddings = self.embedding(customer_ids)
-        return self.dense(embeddings)
+        dense_out = self.dense(embeddings)
+        return tf.linalg.l2_normalize(dense_out, axis=-1)
 
 
 class HMCandidateTower(tf.keras.Model):
@@ -58,7 +59,8 @@ class HMCandidateTower(tf.keras.Model):
     def call(self, inputs):
         article_ids = inputs["article_id"]
         embeddings = self.embedding(article_ids)
-        return self.dense(embeddings)
+        dense_out = self.dense(embeddings)
+        return tf.linalg.l2_normalize(dense_out, axis=-1)
 
 
 class HMTwoTowerModel(tf.keras.Model):
