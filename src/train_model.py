@@ -1,35 +1,46 @@
-﻿
+
 import os
+import sys
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 from pathlib import Path
+import numpy as np
 import pandas as pd
 import tensorflow as tf
 import tensorflow_recommenders as tfrs
 
-from two_tower_model import HMQueryTower, HMCandidateTower, HMTwoTowerModel
+BASE_DIR = Path(__file__).resolve().parent.parent
+SRC_DIR = Path(__file__).resolve().parent
+for p in [str(BASE_DIR), str(SRC_DIR)]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+try:
+    from src.two_tower_model import HMQueryTower, HMCandidateTower, HMTwoTowerModel
+except ImportError:
+    from two_tower_model import HMQueryTower, HMCandidateTower, HMTwoTowerModel
 
 
 # ==========================================
 # CONFIGURATION
 # ==========================================
 
-CUSTOMERS_FILE = "data/processed/customers.csv"
-ARTICLES_FILE = "data/processed/articles.csv"
+CUSTOMERS_FILE = BASE_DIR / "data" / "processed" / "customers.csv"
+ARTICLES_FILE = BASE_DIR / "data" / "processed" / "articles.csv"
 
-TRAIN_FILE = "data/processed/train_interactions.csv"
-VALIDATION_FILE = "data/processed/validation_interactions.csv"
+TRAIN_FILE = BASE_DIR / "data" / "processed" / "train_interactions.csv"
+VALIDATION_FILE = BASE_DIR / "data" / "processed" / "validation_interactions.csv"
 
-MODEL_DIR = Path(os.environ.get("MODEL_OUTPUT_DIR", "models"))
+MODEL_DIR = Path(os.environ.get("MODEL_OUTPUT_DIR", str(BASE_DIR / "models")))
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 EMBEDDING_DIM = 32
-BATCH_SIZE = 512
-EPOCHS = 1
+BATCH_SIZE = 1024
+EPOCHS = 2
 
-# Start with a smaller dataset because training is CPU-based.
-MAX_TRAIN_ROWS = 1_000_000
-MAX_VALIDATION_ROWS = 20_000
+# Training dataset parameters
+MAX_TRAIN_ROWS = 200_000
+MAX_VALIDATION_ROWS = 10_000
 
 CHUNK_SIZE = 100_000
 
@@ -58,12 +69,46 @@ def load_id_vocabulary(file_path, column):
 # READ INTERACTIONS IN CHUNKS
 # ==========================================
 
-
-def interaction_generator(file_path, max_rows, random_sample=False):
+def interaction_generator(file_path, max_rows, random_sample=False, recent_first=True):
     rows_read = 0
     total_train_rows = 31_548_013
 
-    if random_sample:
+    if recent_first and not random_sample:
+        # Seek directly near the end of train_interactions.csv
+        # This focuses training on the most recent Autumn 2020 transactions (14.7x higher item overlap with validation!)
+        byte_estimate = int(max_rows * 80 * 1.3)
+        with open(file_path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            file_size = f.tell()
+            seek_pos = max(0, file_size - byte_estimate)
+            f.seek(seek_pos)
+            if seek_pos > 0:
+                f.readline()  # Discard partial line
+
+            lines = []
+            for line in f:
+                lines.append(line)
+                if len(lines) >= max_rows:
+                    break
+
+        for i in range(0, len(lines), CHUNK_SIZE):
+            batch = lines[i:i + CHUNK_SIZE]
+            cids, aids = [], []
+            for b in batch:
+                row = b.decode("utf-8", errors="ignore").strip().split(",")
+                if len(row) >= 2:
+                    c = row[0].strip()
+                    a = row[1].strip().zfill(10)
+                    if c and a:
+                        cids.append(c)
+                        aids.append(a)
+            if cids:
+                yield {
+                    "customer_id": np.array(cids, dtype=object),
+                    "article_id": np.array(aids, dtype=object)
+                }
+
+    elif random_sample:
         sample_fraction = min(max_rows / total_train_rows, 1.0)
 
         for chunk_number, chunk in enumerate(
@@ -144,9 +189,7 @@ def interaction_generator(file_path, max_rows, random_sample=False):
                 }
 
 
-
-
-def create_dataset(file_path, max_rows, random_sample=False):
+def create_dataset(file_path, max_rows, random_sample=False, recent_first=False):
     output_signature = {
         "customer_id": tf.TensorSpec(
             shape=(None,), dtype=tf.string
@@ -160,7 +203,8 @@ def create_dataset(file_path, max_rows, random_sample=False):
         lambda: interaction_generator(
             file_path,
             max_rows,
-            random_sample
+            random_sample=random_sample,
+            recent_first=recent_first
         ),
         output_signature=output_signature
     )
@@ -204,7 +248,9 @@ class HMRetrievalModel(tfrs.Model):
             )
         )
 
+        # Use temperature scaling (tau=0.05) on L2-normalized embeddings for sharp contrastive separation
         self.retrieval_task = tfrs.tasks.Retrieval(
+            temperature=0.05,
             metrics=tfrs.metrics.FactorizedTopK(
                 candidates=candidate_dataset
             )
@@ -251,19 +297,22 @@ def main():
     )
 
     # Prepare training and validation datasets
-    print("\nPreparing training dataset...")
+    print("\nPreparing training dataset (Recent Transactions Focus)...")
 
     train_dataset = create_dataset(
-    TRAIN_FILE,
-    MAX_TRAIN_ROWS,
-    random_sample=True
-)
+        TRAIN_FILE,
+        MAX_TRAIN_ROWS,
+        random_sample=False,
+        recent_first=True
+    )
 
     print("Preparing validation dataset...")
 
     validation_dataset = create_dataset(
         VALIDATION_FILE,
-        MAX_VALIDATION_ROWS
+        MAX_VALIDATION_ROWS,
+        random_sample=False,
+        recent_first=False
     )
 
     # Create model
@@ -280,7 +329,7 @@ def main():
         )
     )
 
-    # Save best checkpoint
+    # Save best checkpoint & decay LR on plateau
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=str(
             MODEL_DIR / "best_model.weights.h5"
@@ -291,6 +340,13 @@ def main():
         verbose=1
     )
 
+    lr_callback = tf.keras.callbacks.ReduceLROnPlateau(
+        monitor="val_loss",
+        factor=0.5,
+        patience=1,
+        verbose=1
+    )
+
     # Train
     print("\nStarting model training...\n")
 
@@ -298,7 +354,7 @@ def main():
         train_dataset,
         validation_data=validation_dataset,
         epochs=EPOCHS,
-        callbacks=[checkpoint_callback]
+        callbacks=[checkpoint_callback, lr_callback]
     )
 
     # Save final weights in serving-compatible format.
@@ -344,5 +400,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
