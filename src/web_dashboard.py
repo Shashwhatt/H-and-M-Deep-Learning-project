@@ -22,7 +22,7 @@ ANN_INDEX_PATH = BASE_DIR / "models" / "ann_index.npz"
 
 PORT = int(os.environ.get("PORT", sys.argv[1] if len(sys.argv) > 1 else 8501))
 
-# Reliable fashion imagery categorized by garment group
+# Curated high-resolution fashion imagery categorized by product group
 FASHION_PHOTOS = {
     "Garment Upper body": [
         "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80",
@@ -31,35 +31,132 @@ FASHION_PHOTOS = {
         "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1554412933-514a83d2f3c8?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80"
     ],
     "Garment Lower body": [
         "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1551854838-212c50b4c184?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1584370848010-d7fe6bc767ec?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1517445312882-bc9910d016b7?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=700&q=80"
     ],
     "Garment Full body": [
         "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1568252542512-9fe8fe9c87bb?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1502716119720-b23a93e5fe1b?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=700&q=80"
+    ],
+    "Underwear": [
+        "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1520006403909-838d6b92c22e?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1519748771451-a94c59638799?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80"
     ],
     "Accessories": [
         "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=700&q=80"
     ],
     "Shoes": [
         "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1515347619252-60a4bf4fff4f?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=700&q=80"
+    ],
+    "Swimwear": [
+        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=700&q=80"
     ],
     "Default": [
-        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80",
         "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1492707892479-7fb8d5a4cc97?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1508427953056-b00b8d78ebf5?auto=format&fit=crop&w=700&q=80",
+        "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=80"
     ]
 }
+
+# Aggregate all unique photos into a master pool
+ALL_PHOTOS = []
+for photos in FASHION_PHOTOS.values():
+    for p in photos:
+        if p not in ALL_PHOTOS:
+            ALL_PHOTOS.append(p)
+
+
+def get_unique_article_image(aid: str, group: str = "", ptype: str = "", used_in_query: set = None) -> str:
+    """Return a high-quality fashion image guaranteeing no duplicates within the same query result."""
+    norm_group = group.strip()
+    norm_ptype = ptype.lower()
+    
+    # Category resolution
+    if "upper" in norm_group.lower() or "top" in norm_ptype or "shirt" in norm_ptype or "jersey" in norm_ptype:
+        cat = "Garment Upper body"
+    elif "lower" in norm_group.lower() or "trouser" in norm_ptype or "short" in norm_ptype or "pant" in norm_ptype or "skirt" in norm_ptype or "jeans" in norm_ptype:
+        cat = "Garment Lower body"
+    elif "full" in norm_group.lower() or "dress" in norm_ptype or "jumpsuit" in norm_ptype:
+        cat = "Garment Full body"
+    elif "shoe" in norm_group.lower() or "boot" in norm_ptype or "sneaker" in norm_ptype:
+        cat = "Shoes"
+    elif "bag" in norm_group.lower() or "access" in norm_group.lower():
+        cat = "Accessories"
+    elif "swim" in norm_group.lower() or "bikini" in norm_ptype:
+        cat = "Swimwear"
+    elif "under" in norm_group.lower() or "night" in norm_group.lower() or "lingerie" in norm_ptype:
+        cat = "Underwear"
+    else:
+        cat = norm_group if norm_group in FASHION_PHOTOS else "Default"
+
+    pool = FASHION_PHOTOS.get(cat, FASHION_PHOTOS["Default"])
+
+    try:
+        val = int(aid)
+    except Exception:
+        val = abs(hash(aid))
+
+    start_idx = val % len(pool)
+
+    if used_in_query is not None:
+        # Guarantee no duplicates across returned items in the recommendation query
+        for offset in range(len(pool)):
+            candidate = pool[(start_idx + offset) % len(pool)]
+            if candidate not in used_in_query:
+                used_in_query.add(candidate)
+                return candidate
+        # If all in category are taken, choose from global pool
+        for candidate in ALL_PHOTOS:
+            if candidate not in used_in_query:
+                used_in_query.add(candidate)
+                return candidate
+
+    return pool[start_idx]
+
 
 # Pre-cache articles from articles.csv
 ARTICLE_META = {}
@@ -72,31 +169,30 @@ if ARTICLE_CSV.exists():
             for row in reader:
                 aid = row.get("article_id", "").strip()
                 group = row.get("product_group_name", "Garment Upper body")
-                photo_pool = FASHION_PHOTOS.get(group, FASHION_PHOTOS["Default"])
+                ptype = row.get("product_type_name", "Apparel")
                 try:
                     seed_num = int(aid[-4:])
                 except ValueError:
                     seed_num = count
-                img_url = photo_pool[seed_num % len(photo_pool)]
                 price = 14.99 + (seed_num % 75)
 
                 item_obj = {
                     "article_id": aid,
                     "name": row.get("prod_name", "Fashion Item").title(),
-                    "type": row.get("product_type_name", "Apparel").title(),
+                    "type": ptype.title(),
                     "group": group,
                     "color": row.get("colour_group_name", "Monochrome").title(),
                     "department": row.get("department_name", "Ladieswear").upper(),
                     "desc": row.get("detail_desc", "Contemporary essential tailored for effortless daily styling.") or "Contemporary essential tailored for effortless daily styling.",
-                    "image": img_url,
                     "price": f"${price:.2f}"
                 }
                 ARTICLE_META[aid] = item_obj
                 if count < 24:
-                    SAMPLE_CATALOG.append(item_obj)
+                    item_copy = dict(item_obj)
+                    item_copy["image"] = get_unique_article_image(aid, group, ptype)
+                    SAMPLE_CATALOG.append(item_copy)
                 count += 1
-                if count >= 10000:
-                    break
+        print(f"Loaded {len(ARTICLE_META)} articles into metadata cache.")
     except Exception as e:
         print(f"Error loading article metadata: {e}")
 
@@ -572,28 +668,7 @@ HTML_PAGE = """<!DOCTYPE html>
     }
     @keyframes rotating { to { transform: rotate(360deg); } }
 
-    /* Catalog Explorer Tab */
-    .catalog-filter-bar {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-    .filter-btn {
-      background: white;
-      border: 1px solid var(--border);
-      padding: 8px 18px;
-      border-radius: 999px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      transition: all 0.2s;
-    }
-    .filter-btn.active, .filter-btn:hover {
-      background: #111;
-      color: white;
-      border-color: #111;
-    }
+
 
     /* Architecture Tab */
     .arch-card {
@@ -653,7 +728,7 @@ HTML_PAGE = """<!DOCTYPE html>
     </div>
     <div class="nav-tabs">
       <div class="nav-tab active" onclick="switchTab('recs', this)">Personalized Recommendations</div>
-      <div class="nav-tab" onclick="switchTab('catalog', this)">Catalog Explorer</div>
+
     </div>
   </header>
 
@@ -708,22 +783,7 @@ HTML_PAGE = """<!DOCTYPE html>
       <div class="products-grid" id="productsGrid"></div>
     </div>
 
-    <!-- TAB 2: CATALOG EXPLORER -->
-    <div id="tab-catalog" class="view-panel">
-      <div class="results-heading">
-        <span>Browse Article Catalog</span>
-        <span class="results-count">105,542 Total Articles in Dataset</span>
-      </div>
-      <div class="catalog-filter-bar">
-        <button class="filter-btn active" onclick="filterCatalog('All', this)">All Categories</button>
-        <button class="filter-btn" onclick="filterCatalog('Garment Upper body', this)">Upper Body (Tops/Shirts)</button>
-        <button class="filter-btn" onclick="filterCatalog('Garment Lower body', this)">Lower Body (Trousers/Jeans)</button>
-        <button class="filter-btn" onclick="filterCatalog('Garment Full body', this)">Full Body (Dresses)</button>
-        <button class="filter-btn" onclick="filterCatalog('Accessories', this)">Accessories &amp; Bags</button>
-        <button class="filter-btn" onclick="filterCatalog('Shoes', this)">Footwear</button>
-      </div>
-      <div class="products-grid" id="catalogGrid"></div>
-    </div>
+
   </main>
 
   <footer>
@@ -750,7 +810,7 @@ HTML_PAGE = """<!DOCTYPE html>
       });
 
       // Render catalog tab
-      renderCatalogGrid(sampleCatalog);
+
 
       // Initial search
       fetchRecs();
@@ -804,6 +864,22 @@ HTML_PAGE = """<!DOCTYPE html>
       }
     }
 
+    const FALLBACK_SEEDS = [
+      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1506630448388-4e683c67ddb0?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=700&q=80",
+      "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80"
+    ];
+
+    function handleCardImgError(imgEl, idx) {
+      imgEl.onerror = null;
+      imgEl.src = FALLBACK_SEEDS[idx % FALLBACK_SEEDS.length];
+    }
+
     function renderCards(items, container) {
       container.innerHTML = "";
       items.forEach((item, idx) => {
@@ -811,7 +887,7 @@ HTML_PAGE = """<!DOCTYPE html>
         card.className = "product-card";
         card.innerHTML = `
           <div class="img-box">
-            <img class="product-img" src="${item.image}" alt="${item.name}" onerror="this.src='https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=80'">
+            <img class="product-img" src="${item.image}" alt="${item.name}" onerror="handleCardImgError(this, ${idx})">
             <div class="rank-tag">#${idx + 1} Recommendation</div>
             <div class="score-tag">${item.match_pct}% Match</div>
           </div>
@@ -829,36 +905,13 @@ HTML_PAGE = """<!DOCTYPE html>
       });
     }
 
-    function renderCatalogGrid(items) {
-      const grid = document.getElementById("catalogGrid");
-      grid.innerHTML = "";
-      items.forEach(item => {
-        const card = document.createElement("div");
-        card.className = "product-card";
-        card.innerHTML = `
-          <div class="img-box">
-            <img class="product-img" src="${item.image}" alt="${item.name}" onerror="this.src='https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=80'">
-            <div class="rank-tag">${item.group}</div>
-          </div>
-          <div class="product-info">
-            <div class="product-dept">${item.department} • ${item.color}</div>
-            <h3 class="product-name">${item.name}</h3>
-            <p class="product-desc">${item.desc}</p>
-            <div class="product-foot">
-              <span class="product-price">${item.price}</span>
-              <span class="product-id-tag">Article No: ${item.article_id}</span>
-            </div>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
-    }
+
 
     function filterCatalog(category, el) {
       document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
       el.classList.add("active");
       if (category === "All") {
-        renderCatalogGrid(sampleCatalog);
+  
       } else {
         const filtered = sampleCatalog.filter(i => i.group === category);
         renderCatalogGrid(filtered);
@@ -918,7 +971,13 @@ class WebDashboardHandler(BaseHTTPRequestHandler):
             elapsed_ms = round((time.perf_counter() - start_t) * 1000, 2)
 
             recs = []
-            for aid, score in retrieved:
+            used_images = set()
+            scores = [s for _, s in retrieved]
+            max_s = max(scores) if scores else 1.0
+            min_s = min(scores) if scores else 0.0
+            range_s = max(max_s - min_s, 1e-4)
+
+            for rank, (aid, score) in enumerate(retrieved):
                 meta = ARTICLE_META.get(aid, {
                     "article_id": aid,
                     "name": "Classic Wardrobe Essential",
@@ -927,10 +986,15 @@ class WebDashboardHandler(BaseHTTPRequestHandler):
                     "color": "Monochrome",
                     "department": "LADIESWEAR",
                     "desc": "Contemporary essential tailored for effortless daily styling.",
-                    "image": FASHION_PHOTOS["Default"][0],
                     "price": "$29.99"
                 })
-                match_pct = min(99, max(82, int((score + 1.0) / 2.0 * 100)))
+                img_url = get_unique_article_image(aid, meta.get("group", ""), meta.get("type", ""), used_images)
+                
+                # Calibrate match percentage dynamically based on relative similarity
+                rel = (score - min_s) / range_s
+                match_pct = round(84 + rel * 14)
+                match_pct = max(75, min(98, match_pct))
+                
                 recs.append({
                     "article_id": aid,
                     "score": round(score, 4),
@@ -941,7 +1005,7 @@ class WebDashboardHandler(BaseHTTPRequestHandler):
                     "color": meta["color"],
                     "department": meta["department"],
                     "desc": meta["desc"],
-                    "image": meta["image"],
+                    "image": img_url,
                     "price": meta["price"]
                 })
 
