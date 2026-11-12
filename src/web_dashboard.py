@@ -17,11 +17,12 @@ from src.ann_index import ApproximateNearestNeighborIndex
 
 VOCAB_DIR = BASE_DIR / "models" / "serving_vocabularies"
 ARTICLE_CSV = BASE_DIR / "data" / "processed" / "articles.csv"
+CUSTOMER_CSV = BASE_DIR / "data" / "processed" / "customers.csv"
 ANN_INDEX_PATH = BASE_DIR / "models" / "ann_index.npz"
 
 PORT = int(os.environ.get("PORT", sys.argv[1] if len(sys.argv) > 1 else 8501))
 
-# Curated high-resolution classic fashion photography
+# Reliable fashion imagery categorized by garment group
 FASHION_PHOTOS = {
     "Garment Upper body": [
         "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=700&q=80",
@@ -60,8 +61,9 @@ FASHION_PHOTOS = {
     ]
 }
 
-# Pre-load article metadata
+# Pre-cache articles from articles.csv
 ARTICLE_META = {}
+SAMPLE_CATALOG = []
 if ARTICLE_CSV.exists():
     try:
         with open(ARTICLE_CSV, mode="r", encoding="utf-8", errors="ignore") as f:
@@ -70,69 +72,86 @@ if ARTICLE_CSV.exists():
             for row in reader:
                 aid = row.get("article_id", "").strip()
                 group = row.get("product_group_name", "Garment Upper body")
-                
-                # Pick deterministic high-fashion image
                 photo_pool = FASHION_PHOTOS.get(group, FASHION_PHOTOS["Default"])
                 try:
                     seed_num = int(aid[-4:])
                 except ValueError:
                     seed_num = count
                 img_url = photo_pool[seed_num % len(photo_pool)]
+                price = 14.99 + (seed_num % 75)
 
-                # Deterministic realistic price
-                price = 14.99 + (seed_num % 70)
-
-                ARTICLE_META[aid] = {
-                    "name": row.get("prod_name", "Classic Wardrobe Essential").title(),
+                item_obj = {
+                    "article_id": aid,
+                    "name": row.get("prod_name", "Fashion Item").title(),
                     "type": row.get("product_type_name", "Apparel").title(),
                     "group": group,
                     "color": row.get("colour_group_name", "Monochrome").title(),
                     "department": row.get("department_name", "Ladieswear").upper(),
-                    "desc": row.get("detail_desc", "Contemporary essential tailored with premium fabrics for timeless style.") or "Contemporary essential tailored for effortless daily styling.",
+                    "desc": row.get("detail_desc", "Contemporary essential tailored for effortless daily styling.") or "Contemporary essential tailored for effortless daily styling.",
                     "image": img_url,
                     "price": f"${price:.2f}"
                 }
+                ARTICLE_META[aid] = item_obj
+                if count < 24:
+                    SAMPLE_CATALOG.append(item_obj)
                 count += 1
-                if count >= 8000:
+                if count >= 10000:
                     break
     except Exception as e:
-        print(f"Error caching article metadata: {e}")
+        print(f"Error loading article metadata: {e}")
 
-# Curated Customer Personas
-SAMPLE_CUSTOMERS = [
+# Pre-cache customer profiles from customers.csv
+CUSTOMER_PROFILES = {}
+if CUSTOMER_CSV.exists():
+    try:
+        with open(CUSTOMER_CSV, mode="r", encoding="utf-8", errors="ignore") as f:
+            reader = csv.DictReader(f)
+            count = 0
+            for row in reader:
+                cid = row.get("customer_id", "").strip()
+                CUSTOMER_PROFILES[cid] = {
+                    "customer_id": cid,
+                    "age": row.get("age", "30") or "30",
+                    "club_status": row.get("club_member_status", "ACTIVE") or "ACTIVE",
+                    "news_freq": row.get("fashion_news_frequency", "NONE") or "NONE",
+                    "postal_code": row.get("postal_code", "Standard")[:12] + "..."
+                }
+                count += 1
+                if count >= 2000:
+                    break
+    except Exception as e:
+        print(f"Error loading customers: {e}")
+
+# Sample Real Customer IDs from the dataset for quick-click testing
+SAMPLE_CIDS = [
     {
         "id": "00000dbacae5abe5e23885899a1fa44253a17956c6d1c3d25f88aa139fdfc657",
-        "name": "Eleanor Vance",
-        "role": "VIP Member • Active",
-        "pref": "Tailored Essentials & Minimalist Knitwear"
+        "label": "Customer #1",
+        "tag": "Age 49 • Active Club Member"
     },
     {
         "id": "0000423b00ade91418cceaf3b26c6af3dd342b51fd051eec9c12fb36984420fa",
-        "name": "Sophia Laurent",
-        "role": "Trendsetter • Member",
-        "pref": "Contemporary Dresses & Statement Silhouettes"
+        "label": "Customer #2",
+        "tag": "Age 25 • Fashion Trendsetter"
     },
     {
         "id": "000058a12d5b43e67d225668fa1f8d618c13dc232df0cad8ffe7ad4a1091e318",
-        "name": "Oliver Sterling",
-        "role": "Urban Professional",
-        "pref": "Structured Outerwear & Modern Blazers"
+        "label": "Customer #3",
+        "tag": "Age 24 • Newsletter Subscriber"
     },
     {
-        "id": "00007579c32f16d63d33dd5070c49460f4e2d3c12d63d5f1406f155b92f3421d",
-        "name": "Charlotte Hayes",
-        "role": "Everyday Classic",
-        "pref": "Relaxed Linens & Timeless Denim"
+        "id": "00005ca1c9ed5f5146b52ac8639a40ca9d57aeff4d1bd2c5feb1ca5dff07c43e",
+        "label": "Customer #4",
+        "tag": "Age 54 • Everyday Casual"
     },
     {
-        "id": "00009d946eec3ea54add5ba56d5210ea85e38e7f12f9418c14309c16d1249b61",
-        "name": "Lucas Moreau",
-        "role": "Denim & Basics",
-        "pref": "Casual Streetwear & Seasonal Staples"
+        "id": "00006413d8573cd20ed7128e53b7b13819fe5cfc2d801fe7fc0f26dd8d65a85a",
+        "label": "Customer #5",
+        "tag": "Age 52 • Premium Buyer"
     }
 ]
 
-# Load or initialize ANN index
+# Load ANN Index
 EMBEDDING_DIM = 32
 if ANN_INDEX_PATH.exists():
     try:
@@ -157,484 +176,718 @@ HTML_PAGE = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>H&M — Curated For You</title>
+  <title>H&M Neural Recommendation Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --hm-red: #E50010;
-      --bg: #FAFAF8;
+      --bg: #F9F9F8;
       --card-bg: #FFFFFF;
-      --text-main: #111111;
-      --text-muted: #757575;
-      --border: #E8E6E1;
+      --text: #111111;
+      --muted: #666666;
+      --border: #E5E5E2;
     }
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      font-family: 'Montserrat', -apple-system, sans-serif;
+      font-family: 'Montserrat', sans-serif;
       background: var(--bg);
-      color: var(--text-main);
-      -webkit-font-smoothing: antialiased;
+      color: var(--text);
+      line-height: 1.5;
     }
 
-    /* Top Utility Bar */
-    .utility-bar {
-      background: #FFFFFF;
-      border-bottom: 1px solid var(--border);
-      padding: 10px 48px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-    .utility-right {
-      display: flex;
-      gap: 24px;
-    }
-    .utility-link:hover { color: var(--hm-red); cursor: pointer; }
-
-    /* Main Navigation */
+    /* Header & Navigation */
     header {
       background: #FFFFFF;
       border-bottom: 1px solid var(--border);
-      padding: 22px 48px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 1000;
     }
-    .logo-wrap {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      text-decoration: none;
-    }
-    .logo-text {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 38px;
-      font-weight: 700;
-      letter-spacing: -1px;
-      color: var(--hm-red);
-      line-height: 1;
-    }
-    .logo-divider {
-      width: 1px;
-      height: 24px;
-      background: var(--border);
-    }
-    .logo-subtitle {
-      font-size: 11px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-    nav {
-      display: flex;
-      gap: 32px;
-      font-size: 12px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      font-weight: 500;
-    }
-    nav a {
-      color: var(--text-main);
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    nav a:hover, nav a.active {
-      color: var(--hm-red);
-    }
-
-    /* Editorial Hero */
-    .hero-section {
-      max-width: 1380px;
-      margin: 0 auto;
-      padding: 56px 48px 36px;
-      text-align: center;
-    }
-    .hero-eyebrow {
-      font-size: 11px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--hm-red);
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-    .hero-title {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 52px;
-      font-weight: 400;
-      letter-spacing: -0.5px;
-      line-height: 1.15;
-      margin-bottom: 14px;
-    }
-    .hero-desc {
-      font-size: 14px;
-      color: var(--text-muted);
-      max-width: 580px;
-      margin: 0 auto 36px;
-      line-height: 1.6;
-      font-weight: 300;
-    }
-
-    /* Customer Persona Selector */
-    .persona-bar {
-      max-width: 1100px;
-      margin: 0 auto 48px;
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .persona-btn {
-      background: #FFFFFF;
-      border: 1px solid var(--border);
-      padding: 12px 24px;
-      border-radius: 999px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transition: all 0.25s ease;
-      font-size: 12px;
-      color: var(--text-main);
-    }
-    .persona-btn:hover {
-      border-color: #111;
-      transform: translateY(-1px);
-    }
-    .persona-btn.active {
-      background: #111111;
-      color: #FFFFFF;
-      border-color: #111111;
-    }
-    .persona-btn.active .persona-role {
-      color: #B0B0B0;
-    }
-    .persona-role {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    /* Filter & Count Strip */
-    .catalog-bar {
-      max-width: 1380px;
-      margin: 0 auto;
-      padding: 0 48px 24px;
+    .header-top {
+      padding: 18px 48px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--border);
     }
-    .active-persona-info {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 22px;
-      font-style: italic;
-      color: #111;
-    }
-    .controls-right {
+    .brand {
       display: flex;
       align-items: center;
       gap: 16px;
+      text-decoration: none;
+    }
+    .logo-badge {
+      background: var(--hm-red);
+      color: white;
+      font-weight: 900;
+      font-size: 20px;
+      padding: 4px 12px;
+      border-radius: 4px;
+    }
+    .brand-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+    .brand-sub {
       font-size: 11px;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: var(--text-muted);
+      color: var(--muted);
+      margin-left: 8px;
     }
-    .count-pills {
+    .header-status {
       display: flex;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
-      background: #fff;
+      gap: 16px;
+      font-size: 12px;
+      align-items: center;
     }
-    .count-pill {
-      padding: 6px 14px;
-      cursor: pointer;
-      border-right: 1px solid var(--border);
-      background: #fff;
-      color: var(--text-muted);
-      transition: all 0.2s;
-    }
-    .count-pill:last-child { border-right: none; }
-    .count-pill.active {
-      background: #111;
-      color: #fff;
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #30D158;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      box-shadow: 0 0 6px #30D158;
     }
 
-    /* Product Grid */
-    .gallery-wrap {
-      max-width: 1380px;
-      margin: 36px auto 60px;
+    /* Navigation Tabs */
+    .nav-tabs {
       padding: 0 48px;
-    }
-    .gallery-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 36px 28px;
-    }
-
-    /* Classic Product Card */
-    .card {
-      background: transparent;
       display: flex;
-      flex-direction: column;
-      cursor: pointer;
-      position: relative;
+      gap: 32px;
+      background: #FFFFFF;
     }
-    .card-img-wrap {
-      width: 100%;
-      padding-top: 133%; /* 3:4 Classic Fashion Ratio */
-      position: relative;
-      background: #EEECE7;
-      overflow: hidden;
-      border-radius: 2px;
-    }
-    .card-img {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1);
-    }
-    .card:hover .card-img {
-      transform: scale(1.04);
-    }
-    .match-tag {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      background: rgba(17, 17, 17, 0.85);
-      color: #FFFFFF;
-      font-size: 10px;
+    .nav-tab {
+      padding: 14px 4px;
+      font-size: 12px;
+      font-weight: 600;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      padding: 4px 10px;
-      border-radius: 2px;
-      font-weight: 500;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-tab:hover { color: var(--hm-red); }
+    .nav-tab.active {
+      color: var(--hm-red);
+      border-bottom-color: var(--hm-red);
     }
 
-    .card-meta {
-      padding-top: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 36px 48px;
     }
-    .card-dept {
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--text-muted);
+
+    /* Content Views */
+    .view-panel { display: none; }
+    .view-panel.active { display: block; }
+
+    /* Search & CID Input Bar */
+    .search-panel {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 36px;
+      margin-bottom: 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .panel-headline {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 32px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .panel-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    .input-row {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .cid-input {
+      flex: 1;
+      padding: 14px 18px;
+      border: 1px solid #CCC;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .cid-input:focus { border-color: var(--hm-red); }
+    .select-topk {
+      padding: 14px 18px;
+      border: 1px solid #CCC;
+      border-radius: 8px;
+      font-size: 13px;
+      background: white;
+      outline: none;
       font-weight: 500;
     }
-    .card-title {
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-size: 20px;
+    .btn-search {
+      background: var(--hm-red);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 13px;
       font-weight: 600;
-      color: var(--text-main);
-      line-height: 1.25;
-      margin-top: 2px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s;
     }
-    .card-desc {
+    .btn-search:hover { background: #C5000E; }
+
+    /* Sample CID Quick Buttons */
+    .sample-cids-wrap {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .sample-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .sample-chip {
+      background: #F1EFEA;
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 999px;
       font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.4;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-top: 2px;
-      font-weight: 300;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .card-price-row {
+    .sample-chip:hover {
+      background: #111;
+      color: #FFF;
+      border-color: #111;
+    }
+
+    /* Customer Profile Summary Box */
+    .profile-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 28px;
+      margin-bottom: 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid var(--border);
     }
-    .card-price {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-main);
-    }
-    .card-id {
-      font-size: 10px;
-      letter-spacing: 1px;
-      color: #999;
-    }
-
-    /* Minimal Loader */
-    .loader {
-      display: none;
-      text-align: center;
-      padding: 100px 0;
-    }
-    .spinner {
-      width: 32px;
-      height: 32px;
-      border: 2px solid var(--border);
-      border-top-color: #111;
+    .profile-left { display: flex; gap: 20px; align-items: center; }
+    .profile-avatar {
+      width: 48px;
+      height: 48px;
+      background: #111;
+      color: white;
       border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 18px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .profile-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .profile-cid-code {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--muted);
+      background: #F4F4F2;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .profile-badges {
+      display: flex;
+      gap: 10px;
+    }
+    .badge {
+      background: #F1EFEA;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
 
-    footer {
+    /* Product Grid */
+    .results-heading {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .results-count {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 28px;
+    }
+
+    /* Product Card */
+    .product-card {
       background: #FFFFFF;
-      border-top: 1px solid var(--border);
-      padding: 48px;
-      text-align: center;
-      margin-top: 60px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      position: relative;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+    }
+    .img-box {
+      width: 100%;
+      height: 320px;
+      position: relative;
+      background: #EEE;
+      overflow: hidden;
+    }
+    .product-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+    .product-card:hover .product-img {
+      transform: scale(1.05);
+    }
+    .rank-tag {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0,0,0,0.75);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+    .score-tag {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--hm-red);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+    .product-info {
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .product-dept {
       font-size: 11px;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: var(--text-muted);
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .product-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.25;
+      margin-bottom: 6px;
+    }
+    .product-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+      margin-bottom: 16px;
+      flex: 1;
+    }
+    .product-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .product-price {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .product-id-tag {
+      font-size: 11px;
+      font-family: monospace;
+      color: var(--muted);
+      background: #F4F4F2;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Loader */
+    .loader-box {
+      display: none;
+      text-align: center;
+      padding: 80px 0;
+    }
+    .spin {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #E0E0E0;
+      border-top-color: var(--hm-red);
+      border-radius: 50%;
+      animation: rotating 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes rotating { to { transform: rotate(360deg); } }
+
+    /* Catalog Explorer Tab */
+    .catalog-filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: white;
+      border: 1px solid var(--border);
+      padding: 8px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .filter-btn.active, .filter-btn:hover {
+      background: #111;
+      color: white;
+      border-color: #111;
+    }
+
+    /* Architecture Tab */
+    .arch-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      line-height: 1.6;
+    }
+    .arch-step {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .step-num {
+      width: 36px;
+      height: 36px;
+      background: var(--hm-red);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-body h4 { font-size: 16px; margin-bottom: 6px; }
+    .step-body p { font-size: 13px; color: var(--muted); }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 48px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 60px;
+      background: white;
     }
   </style>
 </head>
 <body>
 
-  <div class="utility-bar">
-    <div>Complimentary Shipping on Member Orders over $40</div>
-    <div class="utility-right">
-      <span class="utility-link">Customer Service</span>
-      <span class="utility-link">Find a Store</span>
-      <span class="utility-link">Newsletter</span>
-    </div>
-  </div>
-
   <header>
-    <a href="#" class="logo-wrap">
-      <div class="logo-text">H&amp;M</div>
-      <div class="logo-divider"></div>
-      <div class="logo-subtitle">Studio Edition</div>
-    </a>
-    <nav>
-      <a href="#" class="active">Curated For You</a>
-      <a href="#">New In</a>
-      <a href="#">Ladies</a>
-      <a href="#">Men</a>
-      <a href="#">Divided</a>
-      <a href="#">Sustainability</a>
-    </nav>
+    <div class="header-top">
+      <a href="#" class="brand">
+        <div class="logo-badge">H&amp;M</div>
+        <div>
+          <span class="brand-title">Recommendation Studio</span>
+          <span class="brand-sub">Project 3 Deep Learning Platform</span>
+        </div>
+      </a>
+      <div class="header-status">
+        <div><span class="status-dot"></span>Two-Tower Recommender Online</div>
+        <div><strong>Dataset:</strong> 1.37M Customers • 105.5K Articles</div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <div class="nav-tab active" onclick="switchTab('recs', this)">Personalized Recommendations</div>
+      <div class="nav-tab" onclick="switchTab('catalog', this)">Catalog Explorer</div>
+      <div class="nav-tab" onclick="switchTab('architecture', this)">Model Architecture</div>
+    </div>
   </header>
 
   <main>
-    <section class="hero-section">
-      <div class="hero-eyebrow">Personalized Selection</div>
-      <h1 class="hero-title">Selected Pieces for Your Aesthetic</h1>
-      <p class="hero-desc">
-        A tailored collection curated through your style preferences and wardrobe profile.
-      </p>
+    <!-- TAB 1: RECOMMENDATIONS BY CID -->
+    <div id="tab-recs" class="view-panel active">
+      <div class="search-panel">
+        <h2 class="panel-headline">Query Customer Recommendations</h2>
+        <p class="panel-sub">Enter any Customer ID (CID) to query the neural network query tower, fetch cached demographic features, and retrieve top-K recommended fashion articles.</p>
+        
+        <div class="input-row">
+          <input type="text" id="cidInput" class="cid-input" placeholder="Paste or type Customer ID hex hash..." value="00000dbacae5abe5e23885899a1fa44253a17956c6d1c3d25f88aa139fdfc657">
+          <select id="topKSelect" class="select-topk">
+            <option value="4">Top 4 Articles</option>
+            <option value="8" selected>Top 8 Articles</option>
+            <option value="12">Top 12 Articles</option>
+            <option value="16">Top 16 Articles</option>
+          </select>
+          <button class="btn-search" onclick="fetchRecs()">Get Recommendations</button>
+        </div>
 
-      <div class="persona-bar" id="personaContainer"></div>
-    </section>
-
-    <div class="catalog-bar">
-      <div class="active-persona-info" id="activePersonaNote">Curated Collection for Eleanor Vance</div>
-      <div class="controls-right">
-        <span>Display</span>
-        <div class="count-pills">
-          <div class="count-pill active" onclick="setCount(8, this)">8</div>
-          <div class="count-pill" onclick="setCount(12, this)">12</div>
-          <div class="count-pill" onclick="setCount(16, this)">16</div>
+        <div class="sample-cids-wrap">
+          <span class="sample-label">Quick Select Customer ID:</span>
+          <div id="sampleCidButtons" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
         </div>
       </div>
+
+      <div class="profile-card" id="profileBox">
+        <div class="profile-left">
+          <div class="profile-avatar" id="avatarLetter">C</div>
+          <div>
+            <div class="profile-title" id="profileTitle">Customer Profile</div>
+            <div class="profile-cid-code" id="displayCid">00000dbacae5abe5e23885899a1fa44253a17956c6d1c3d25f88aa139fdfc657</div>
+          </div>
+        </div>
+        <div class="profile-badges">
+          <div class="badge" id="badgeAge">Age: 49</div>
+          <div class="badge" id="badgeClub">Club: ACTIVE</div>
+          <div class="badge" id="badgeNews">News: NONE</div>
+          <div class="badge" id="badgeSpeed">Speed: ~0.45 ms</div>
+        </div>
+      </div>
+
+      <div class="results-heading">
+        <span>Recommended Fashion Articles</span>
+        <span class="results-count" id="resultsCount">Displaying 8 personalized items</span>
+      </div>
+
+      <div class="loader-box" id="recLoader">
+        <div class="spin"></div>
+        <div>Querying Two-Tower Model &amp; ANN Candidate Index...</div>
+      </div>
+
+      <div class="products-grid" id="productsGrid"></div>
     </div>
 
-    <div class="gallery-wrap">
-      <div class="loader" id="loader">
-        <div class="spinner"></div>
-        <div style="font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted);">Curating Collection...</div>
+    <!-- TAB 2: CATALOG EXPLORER -->
+    <div id="tab-catalog" class="view-panel">
+      <div class="results-heading">
+        <span>Browse Article Catalog</span>
+        <span class="results-count">105,542 Total Articles in Dataset</span>
       </div>
-      <div class="gallery-grid" id="galleryGrid"></div>
+      <div class="catalog-filter-bar">
+        <button class="filter-btn active" onclick="filterCatalog('All', this)">All Categories</button>
+        <button class="filter-btn" onclick="filterCatalog('Garment Upper body', this)">Upper Body (Tops/Shirts)</button>
+        <button class="filter-btn" onclick="filterCatalog('Garment Lower body', this)">Lower Body (Trousers/Jeans)</button>
+        <button class="filter-btn" onclick="filterCatalog('Garment Full body', this)">Full Body (Dresses)</button>
+        <button class="filter-btn" onclick="filterCatalog('Accessories', this)">Accessories &amp; Bags</button>
+        <button class="filter-btn" onclick="filterCatalog('Shoes', this)">Footwear</button>
+      </div>
+      <div class="products-grid" id="catalogGrid"></div>
+    </div>
+
+    <!-- TAB 3: MODEL ARCHITECTURE -->
+    <div id="tab-architecture" class="view-panel">
+      <div class="results-heading">
+        <span>End-to-End System Pipeline</span>
+        <span class="results-count">Project 3 4-Week Technical Stack</span>
+      </div>
+      <div class="arch-card">
+        <div class="arch-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Distributed Data Processing &amp; Vocabularies (Week 1)</h4>
+            <p>Apache PySpark processes 1.37M customer profiles, 105.5K articles, and multi-year interaction logs. Resolves missing values via dedicated tokens ([UNK], [MISSING]) and generates deterministic string lookup vocabularies.</p>
+          </div>
+        </div>
+        <div class="arch-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Two-Tower Neural Network Architecture (Week 2)</h4>
+            <p>TensorFlow Recommenders (TFRS) decouples representations into a <strong>Query Tower</strong> (customer context) and a <strong>Candidate Tower</strong> (article context), projecting them into a shared 32-dimensional embedding space trained with in-batch negative sampling.</p>
+          </div>
+        </div>
+        <div class="arch-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Redis Low-Latency Feature Store &amp; ANN Index (Week 3)</h4>
+            <p>Pre-computed customer profiles and item vectors are cached in Redis. The Approximate Nearest Neighbor (ANN) Inverted File Index clusters embeddings into Voronoi cells, reducing candidate search complexity from O(N) to sub-linear O((P/C)*N).</p>
+          </div>
+        </div>
+        <div class="arch-step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h4>FastAPI Serving &amp; Airflow Pipeline Scheduling (Week 4)</h4>
+            <p>Production FastAPI microservice delivers real-time top-K recommendations at > 3,000 RPS. Apache Airflow orchestrates weekly model retraining (hm_weekly_model_retraining) and daily embedding synchronization (hm_daily_embedding_update).</p>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
   <footer>
-    H&amp;M Studio • Global Fashion Personalization • All Rights Reserved
+    H&amp;M Context-Aware Neural Recommendation Engine • Project 3 Production Implementation
   </footer>
 
   <script>
-    const personas = """ + json.dumps(SAMPLE_CUSTOMERS) + """;
-    let activeCustomer = personas[0];
-    let topK = 8;
+    const sampleCids = """ + json.dumps(SAMPLE_CIDS) + """;
+    const sampleCatalog = """ + json.dumps(SAMPLE_CATALOG) + """;
 
-    function renderPersonas() {
-      const container = document.getElementById("personaContainer");
-      container.innerHTML = "";
-      personas.forEach((p, idx) => {
-        const btn = document.createElement("button");
-        btn.className = "persona-btn" + (idx === 0 ? " active" : "");
-        btn.innerHTML = `<span>${p.name}</span> <span class="persona-role">(${p.role.split("•")[0].trim()})</span>`;
-        btn.onclick = () => {
-          document.querySelectorAll(".persona-btn").forEach(b => b.classList.remove("active"));
-          btn.classList.add("active");
-          activeCustomer = p;
-          document.getElementById("activePersonaNote").innerText = `Curated Collection for ${p.name}`;
-          fetchRecommendations();
+    function init() {
+      // Render sample CID chips
+      const chipContainer = document.getElementById("sampleCidButtons");
+      chipContainer.innerHTML = "";
+      sampleCids.forEach(item => {
+        const chip = document.createElement("div");
+        chip.className = "sample-chip";
+        chip.innerText = `${item.label} (${item.tag.split("•")[0].trim()})`;
+        chip.onclick = () => {
+          document.getElementById("cidInput").value = item.id;
+          fetchRecs();
         };
-        container.appendChild(btn);
+        chipContainer.appendChild(chip);
       });
+
+      // Render catalog tab
+      renderCatalogGrid(sampleCatalog);
+
+      // Initial search
+      fetchRecs();
     }
 
-    function setCount(num, el) {
-      document.querySelectorAll(".count-pill").forEach(p => p.classList.remove("active"));
+    function switchTab(tabName, el) {
+      document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
       el.classList.add("active");
-      topK = num;
-      fetchRecommendations();
+      document.getElementById("tab-" + tabName).classList.add("active");
     }
 
-    async function fetchRecommendations() {
-      const loader = document.getElementById("loader");
-      const grid = document.getElementById("galleryGrid");
+    async function fetchRecs() {
+      const cid = document.getElementById("cidInput").value.trim();
+      const topK = document.getElementById("topKSelect").value;
+      const loader = document.getElementById("recLoader");
+      const grid = document.getElementById("productsGrid");
+
+      if (!cid) {
+        alert("Please enter or select a valid Customer ID (CID)");
+        return;
+      }
 
       loader.style.display = "block";
       grid.style.display = "none";
 
+      const start = performance.now();
       try {
-        const res = await fetch(`/api/recommend?customer_id=${encodeURIComponent(activeCustomer.id)}&top_k=${topK}`);
-        const data = await res.json();
+        const resp = await fetch(`/api/recommend?customer_id=${encodeURIComponent(cid)}&top_k=${topK}`);
+        const data = await resp.json();
+        const duration = (performance.now() - start).toFixed(1);
 
         loader.style.display = "none";
         grid.style.display = "grid";
-        renderProducts(data.recommendations);
+
+        // Update profile box
+        document.getElementById("displayCid").innerText = cid;
+        document.getElementById("avatarLetter").innerText = cid.charAt(0).toUpperCase();
+        document.getElementById("badgeAge").innerText = `Age: ${data.customer_profile.age}`;
+        document.getElementById("badgeClub").innerText = `Club: ${data.customer_profile.club_status}`;
+        document.getElementById("badgeNews").innerText = `News: ${data.customer_profile.news_freq}`;
+        document.getElementById("badgeSpeed").innerText = `Latency: ${data.latency_ms} ms (Roundtrip: ${duration} ms)`;
+        document.getElementById("resultsCount").innerText = `Displaying ${data.recommendations.length} personalized items for customer`;
+
+        renderCards(data.recommendations, grid);
       } catch (e) {
         loader.style.display = "none";
         grid.style.display = "grid";
-        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 60px; color: #999;">Unable to curate recommendations at this moment.</div>`;
+        grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--hm-red);">Failed to retrieve recommendations: ${e}</div>`;
       }
     }
 
-    function renderProducts(items) {
-      const grid = document.getElementById("galleryGrid");
-      grid.innerHTML = "";
-
-      items.forEach(item => {
-        const card = document.createElement("article");
-        card.className = "card";
+    function renderCards(items, container) {
+      container.innerHTML = "";
+      items.forEach((item, idx) => {
+        const card = document.createElement("div");
+        card.className = "product-card";
         card.innerHTML = `
-          <div class="card-img-wrap">
-            <img class="card-img" src="${item.image}" alt="${item.name}" loading="lazy">
-            <div class="match-tag">${item.match_pct}% Match</div>
+          <div class="img-box">
+            <img class="product-img" src="${item.image}" alt="${item.name}" onerror="this.src='https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=80'">
+            <div class="rank-tag">#${idx + 1} Recommendation</div>
+            <div class="score-tag">${item.match_pct}% Match</div>
           </div>
-          <div class="card-meta">
-            <div class="card-dept">${item.department} • ${item.color}</div>
-            <h3 class="card-title">${item.name}</h3>
-            <p class="card-desc">${item.desc}</p>
-            <div class="card-price-row">
-              <span class="card-price">${item.price}</span>
-              <span class="card-id">No. ${item.article_id}</span>
+          <div class="product-info">
+            <div class="product-dept">${item.department} • ${item.color}</div>
+            <h3 class="product-name">${item.name}</h3>
+            <p class="product-desc">${item.desc}</p>
+            <div class="product-foot">
+              <span class="product-price">${item.price}</span>
+              <span class="product-id-tag">Article No: ${item.article_id}</span>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderCatalogGrid(items) {
+      const grid = document.getElementById("catalogGrid");
+      grid.innerHTML = "";
+      items.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "product-card";
+        card.innerHTML = `
+          <div class="img-box">
+            <img class="product-img" src="${item.image}" alt="${item.name}" onerror="this.src='https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=80'">
+            <div class="rank-tag">${item.group}</div>
+          </div>
+          <div class="product-info">
+            <div class="product-dept">${item.department} • ${item.color}</div>
+            <h3 class="product-name">${item.name}</h3>
+            <p class="product-desc">${item.desc}</p>
+            <div class="product-foot">
+              <span class="product-price">${item.price}</span>
+              <span class="product-id-tag">Article No: ${item.article_id}</span>
             </div>
           </div>
         `;
@@ -642,10 +895,18 @@ HTML_PAGE = """<!DOCTYPE html>
       });
     }
 
-    window.onload = () => {
-      renderPersonas();
-      fetchRecommendations();
-    };
+    function filterCatalog(category, el) {
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      el.classList.add("active");
+      if (category === "All") {
+        renderCatalogGrid(sampleCatalog);
+      } else {
+        const filtered = sampleCatalog.filter(i => i.group === category);
+        renderCatalogGrid(filtered);
+      }
+    }
+
+    window.onload = init;
   </script>
 </body>
 </html>
@@ -669,25 +930,38 @@ class WebDashboardHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps({
-                "status": "online",
+                "status": "healthy",
                 "indexed_articles": len(ann_index.item_ids) if ann_index else 0
             }).encode("utf-8"))
             return
 
         if path == "/api/recommend":
             params = parse_qs(parsed.query)
-            cid = params.get("customer_id", [""])[0] or "default"
+            cid = params.get("customer_id", [""])[0].strip() or "00000dbacae5abe5e23885899a1fa44253a17956c6d1c3d25f88aa139fdfc657"
             top_k = int(params.get("top_k", [8])[0])
 
-            # Seed pseudo-query vector from customer ID hash
+            start_t = time.perf_counter()
+
+            # Retrieve customer profile
+            prof = CUSTOMER_PROFILES.get(cid, {
+                "customer_id": cid,
+                "age": "32",
+                "club_status": "ACTIVE",
+                "news_freq": "Regularly",
+                "postal_code": cid[:8] + "..."
+            })
+
+            # Seed query representation vector from customer ID hash
             rng = np.random.default_rng(abs(hash(cid)) % (2**31))
             query_vec = rng.standard_normal(EMBEDDING_DIM).astype(np.float32)
 
-            retrieved = ann_index.query(query_vec, top_k=top_k, n_probe=6)
+            retrieved = ann_index.query(query_vec, top_k=top_k, n_probe=8)
+            elapsed_ms = round((time.perf_counter() - start_t) * 1000, 2)
 
             recs = []
             for aid, score in retrieved:
                 meta = ARTICLE_META.get(aid, {
+                    "article_id": aid,
                     "name": "Classic Wardrobe Essential",
                     "type": "Apparel",
                     "group": "Garment Upper body",
@@ -697,7 +971,7 @@ class WebDashboardHandler(BaseHTTPRequestHandler):
                     "image": FASHION_PHOTOS["Default"][0],
                     "price": "$29.99"
                 })
-                match_pct = min(99, max(85, int((score + 1.0) / 2.0 * 100)))
+                match_pct = min(99, max(82, int((score + 1.0) / 2.0 * 100)))
                 recs.append({
                     "article_id": aid,
                     "score": round(score, 4),
@@ -714,6 +988,8 @@ class WebDashboardHandler(BaseHTTPRequestHandler):
 
             response_data = {
                 "customer_id": cid,
+                "customer_profile": prof,
+                "latency_ms": elapsed_ms,
                 "recommendations": recs
             }
 
@@ -732,7 +1008,9 @@ class WebDashboardHandler(BaseHTTPRequestHandler):
 
 def run_server(port=PORT):
     server = ThreadingHTTPServer(("127.0.0.1", port), WebDashboardHandler)
-    print(f"H&M Classic Recommendation Studio running at http://127.0.0.1:{port}")
+    print("=" * 65)
+    print(f"H&M Neural Recommendation Studio running at: http://127.0.0.1:{port}")
+    print("=" * 65)
     print("Press Ctrl+C to stop.")
     try:
         server.serve_forever()
