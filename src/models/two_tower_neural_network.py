@@ -174,4 +174,4 @@ class HMTTwoTowerModel(tfrs.Model):
 
 if __name__ == "__main__":
     print("--- H&M Two-Tower Neural Network Script Loaded Successfully ---")
-    print("Ready to be integrated with the training loops on engineered parquet datasets.")
+    print("Ready to be integrated with training loops on engineered parquet datasets.")
