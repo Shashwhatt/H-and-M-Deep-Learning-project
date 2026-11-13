@@ -95,3 +95,22 @@ COMPLETED
 - Update model loader for context-aware inputs.
 - Integrate customer metadata into the FastAPI recommendation service.
 - Refresh Redis customer features and test end-to-end recommendations.
+
+### Recommendation Evaluation Investigation (November 13)
+
+- Investigated low Recall@K and NDCG@K evaluation scores.
+- Reviewed the recommendation evaluation pipeline and customer-level metrics.
+- Traced the interaction dataset generation to `src/prepare_interactions.py`.
+- Confirmed that current development interactions are synthetically generated using randomly selected articles.
+- Confirmed that the current train/validation split uses random row-level splitting.
+- Verified that the original H&M `transactions_train.csv` dataset is not available locally.
+- Identified the need for real H&M transaction data and chronological evaluation.
+- Planned cloud-based model training using Kaggle Notebooks to avoid downloading the full dataset locally.
+
+### Next Steps
+
+- Prepare real H&M transaction data in Kaggle.
+- Create chronological training and validation datasets.
+- Train and evaluate the Two-Tower recommendation model using real interactions.
+- Export trained model artifacts for FastAPI integration.
+
