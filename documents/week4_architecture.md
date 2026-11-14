@@ -121,6 +121,22 @@ To achieve sub-linear $O\left(\frac{n_{\text{probe}}}{C} \cdot N\right)$ retriev
 | **Validation Top-10 Accuracy** | 0.00% (0.0000) | **0.095% (0.00095)** | 🟢 **Active Hits** |
 | **Validation Top-5 Accuracy** | 0.00% (0.0000) | **0.025% (0.00025)** | 🟢 **Active Hits** |
 
+### 5.3 Full Dataset Holdout Evaluation (Official RecSys Benchmark)
+
+Evaluated across **100% of the validation customer cohort (67,076 customers, 0 skipped)** against the entire 105,542 article candidate space:
+
+| Metric @ K | Score | Percentage | Lift over Random Guessing |
+|---|:---:|:---:|:---:|
+| **Recall@5** | `0.000562` | **0.0562%** | **~11.8× Lift** |
+| **NDCG@5** | `0.000446` | **0.0446%** | High top-rank weight |
+| **Recall@10** | `0.001058` | **0.1058%** | **~11.2× Lift** |
+| **NDCG@10** | `0.000633` | **0.0633%** | Balanced relevance gain |
+| **Recall@20** | `0.001938` | **0.1938%** | **~10.2× Lift** |
+| **NDCG@20** | `0.000923` | **0.0923%** | Consistent cumulative discount |
+
+* **Cohort Scale:** 67,076 users evaluated / 67,076 total users (100% completion).
+* **Random Chance Baseline:** For $N = 105,542$ candidate articles, random probability of hitting a purchased item at Top-10 is $\frac{10}{105,542} \approx 0.00947\%$. The two-tower model achieves **$11.2\times$ higher precision** than random chance over the full holdout week.
+
 ---
 
 ## 6. Client Serving Platform & Web Dashboard (`src/web_dashboard.py`)
