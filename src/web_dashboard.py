@@ -747,7 +747,7 @@ HTML_PAGE = """<!DOCTYPE html>
         <div class="logo-badge">H&amp;M</div>
         <div>
           <span class="brand-title">Recommendation Studio</span>
-          <span class="brand-sub">Project 3 Deep Learning Platform</span>
+          <span class="brand-sub">Context-Aware Neural Recommendation Engine</span>
         </div>
       </a>
       <div class="header-status">
@@ -765,7 +765,7 @@ HTML_PAGE = """<!DOCTYPE html>
     <div id="tab-recs" class="view-panel active">
       <div class="search-panel">
         <h2 class="panel-headline">Query Customer Recommendations</h2>
-        <p class="panel-sub">Enter any Customer ID (CID) to query the neural network query tower, fetch cached demographic features, and retrieve top-K recommended fashion articles.</p>
+        <p class="panel-sub">Enter any Customer ID (CID) to retrieve top-K recommended fashion articles.</p>
         
         <div class="input-row">
           <input type="text" id="cidInput" class="cid-input" placeholder="Paste or type Customer ID hex hash..." value="00000dbacae5abe5e23885899a1fa44253a17956c6d1c3d25f88aa139fdfc657">
