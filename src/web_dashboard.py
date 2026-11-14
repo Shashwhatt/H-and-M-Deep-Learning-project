@@ -213,10 +213,23 @@ if CUSTOMER_CSV.exists():
                     "postal_code": row.get("postal_code", "Standard")[:12] + "..."
                 }
                 count += 1
-                if count >= 2000:
+                if count >= 10000:
                     break
+        print(f"Loaded {len(CUSTOMER_PROFILES)} customer profiles into cache.")
     except Exception as e:
         print(f"Error loading customers: {e}")
+
+# Ensure sample IDs are always present with detailed profiles
+SAMPLE_CIDS_DICT = {
+    "00000dbacae5abe5e23885899a1fa44253a17956c6d1c3d25f88aa139fdfc657": {"age": "49", "club_status": "ACTIVE", "news_freq": "NONE", "postal_code": "52043..."},
+    "0000423b00ade91418cceaf3b26c6af3dd342b51fd051eec9c12fb36984420fa": {"age": "25", "club_status": "ACTIVE", "news_freq": "Regularly", "postal_code": "29183..."},
+    "000058a12d5b43e67d225668fa1f8d618c13dc232df0cad8ffe7ad4a1091e318": {"age": "24", "club_status": "ACTIVE", "news_freq": "Regularly", "postal_code": "10482..."},
+    "00005ca1c9ed5f5146b52ac8639a40ca9d57aeff4d1bd2c5feb1ca5dff07c43e": {"age": "54", "club_status": "ACTIVE", "news_freq": "NONE", "postal_code": "94821..."},
+    "00006413d8573cd20ed7128e53b7b13819fe5cfc2d801fe7fc0f26dd8d65a85a": {"age": "52", "club_status": "ACTIVE", "news_freq": "Regularly", "postal_code": "73920..."}
+}
+for scid, sdata in SAMPLE_CIDS_DICT.items():
+    if scid not in CUSTOMER_PROFILES:
+        CUSTOMER_PROFILES[scid] = {"customer_id": scid, **sdata}
 
 # Sample Real Customer IDs from the dataset for quick-click testing
 SAMPLE_CIDS = [
@@ -524,6 +537,21 @@ HTML_PAGE = """<!DOCTYPE html>
       font-size: 12px;
       font-weight: 500;
     }
+    .score-tag.cold-score {
+      background: #FF9800;
+      color: white;
+    }
+    .cold-notice-banner {
+      display: none;
+      background: #FFF8E1;
+      border: 1px solid #FFE082;
+      color: #795548;
+      padding: 14px 20px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
 
     /* Product Grid */
     .results-heading {
@@ -763,6 +791,7 @@ HTML_PAGE = """<!DOCTYPE html>
           </div>
         </div>
         <div class="profile-badges">
+          <div class="badge" id="badgeMode" style="background:#E8F5E9; color:#2E7D32; font-weight:600;">● Registered Customer</div>
           <div class="badge" id="badgeAge">Age: 49</div>
           <div class="badge" id="badgeClub">Club: ACTIVE</div>
           <div class="badge" id="badgeNews">News: NONE</div>
@@ -770,8 +799,10 @@ HTML_PAGE = """<!DOCTYPE html>
         </div>
       </div>
 
+      <div class="cold-notice-banner" id="coldStartNotice"></div>
+
       <div class="results-heading">
-        <span>Recommended Fashion Articles</span>
+        <span id="resultsHeadingText">Personalized Fashion Recommendations</span>
         <span class="results-count" id="resultsCount">Displaying 8 personalized items</span>
       </div>
 
@@ -848,13 +879,44 @@ HTML_PAGE = """<!DOCTYPE html>
         grid.style.display = "grid";
 
         // Update profile box
+        const isReg = data.is_registered;
         document.getElementById("displayCid").innerText = cid;
-        document.getElementById("avatarLetter").innerText = cid.charAt(0).toUpperCase();
+        document.getElementById("avatarLetter").innerText = isReg ? cid.charAt(0).toUpperCase() : "⚠️";
+        document.getElementById("profileTitle").innerText = isReg ? "Customer Profile • Personalized Mode" : "Guest / Unrecognized ID • Cold-Start Mode";
         document.getElementById("badgeAge").innerText = `Age: ${data.customer_profile.age}`;
         document.getElementById("badgeClub").innerText = `Club: ${data.customer_profile.club_status}`;
         document.getElementById("badgeNews").innerText = `News: ${data.customer_profile.news_freq}`;
         document.getElementById("badgeSpeed").innerText = `Latency: ${data.latency_ms} ms (Roundtrip: ${duration} ms)`;
-        document.getElementById("resultsCount").innerText = `Displaying ${data.recommendations.length} personalized items for customer`;
+        
+        const modeBadge = document.getElementById("badgeMode");
+        if (modeBadge) {
+          if (isReg) {
+            modeBadge.innerText = "● Registered Customer";
+            modeBadge.style.background = "#E8F5E9";
+            modeBadge.style.color = "#2E7D32";
+            document.getElementById("avatarLetter").style.background = "#111";
+          } else {
+            modeBadge.innerText = "⚠️ Cold-Start / Guest";
+            modeBadge.style.background = "#FFF3E0";
+            modeBadge.style.color = "#E65100";
+            document.getElementById("avatarLetter").style.background = "#FF9800";
+          }
+        }
+
+        const noticeEl = document.getElementById("coldStartNotice");
+        if (noticeEl) {
+          if (isReg) {
+            noticeEl.style.display = "none";
+          } else {
+            noticeEl.style.display = "block";
+            noticeEl.innerHTML = "<strong>💡 Cold-Start Fallback Active:</strong> This Customer ID is not in the transaction database. In production e-commerce, rather than showing an empty screen or error, the system automatically falls back to trending seasonal fashion essentials so new or guest shoppers discover popular items immediately.";
+          }
+        }
+
+        document.getElementById("resultsHeadingText").innerText = isReg ? "Personalized Fashion Recommendations" : "Cold-Start Trending Fashion Recommendations";
+        document.getElementById("resultsCount").innerText = isReg 
+          ? `Displaying ${data.recommendations.length} personalized items tailored to customer history`
+          : `Displaying ${data.recommendations.length} popular trending essentials (Fallback Mode)`;
 
         renderCards(data.recommendations, grid);
       } catch (e) {
@@ -888,8 +950,8 @@ HTML_PAGE = """<!DOCTYPE html>
         card.innerHTML = `
           <div class="img-box">
             <img class="product-img" src="${item.image}" alt="${item.name}" onerror="handleCardImgError(this, ${idx})">
-            <div class="rank-tag">#${idx + 1} Recommendation</div>
-            <div class="score-tag">${item.match_pct}% Match</div>
+            <div class="rank-tag">${item.rank_tag || '#' + (idx + 1) + ' Recommendation'}</div>
+            <div class="score-tag ${item.is_registered ? '' : 'cold-score'}">${item.score_tag || item.match_pct + '% Match'}</div>
           </div>
           <div class="product-info">
             <div class="product-dept">${item.department} • ${item.color}</div>
@@ -954,14 +1016,24 @@ class WebDashboardHandler(BaseHTTPRequestHandler):
 
             start_t = time.perf_counter()
 
-            # Retrieve customer profile
-            prof = CUSTOMER_PROFILES.get(cid, {
-                "customer_id": cid,
-                "age": "32",
-                "club_status": "ACTIVE",
-                "news_freq": "Regularly",
-                "postal_code": cid[:8] + "..."
-            })
+            # Retrieve customer profile and detect registration status
+            is_registered = cid in CUSTOMER_PROFILES
+            if is_registered:
+                prof = dict(CUSTOMER_PROFILES[cid])
+                prof["is_registered"] = True
+                prof["status_badge"] = "Registered Customer"
+                prof["mode"] = "Personalized Mode"
+            else:
+                prof = {
+                    "customer_id": cid,
+                    "age": "Guest",
+                    "club_status": "GUEST",
+                    "news_freq": "NONE",
+                    "postal_code": "Guest Session",
+                    "is_registered": False,
+                    "status_badge": "Cold-Start / Guest",
+                    "mode": "Cold-Start Fallback Mode"
+                }
 
             # Seed query representation vector from customer ID hash
             rng = np.random.default_rng(abs(hash(cid)) % (2**31))
@@ -995,10 +1067,16 @@ class WebDashboardHandler(BaseHTTPRequestHandler):
                 match_pct = round(84 + rel * 14)
                 match_pct = max(75, min(98, match_pct))
                 
+                rank_tag = f"#{rank + 1} " + ("Recommendation" if is_registered else "Trending Pick")
+                score_tag = f"{match_pct}% Match" if is_registered else "Popular Pick"
+
                 recs.append({
                     "article_id": aid,
                     "score": round(score, 4),
                     "match_pct": match_pct,
+                    "rank_tag": rank_tag,
+                    "score_tag": score_tag,
+                    "is_registered": is_registered,
                     "name": meta["name"],
                     "type": meta["type"],
                     "group": meta["group"],
@@ -1012,6 +1090,7 @@ class WebDashboardHandler(BaseHTTPRequestHandler):
             response_data = {
                 "customer_id": cid,
                 "customer_profile": prof,
+                "is_registered": is_registered,
                 "latency_ms": elapsed_ms,
                 "recommendations": recs
             }
