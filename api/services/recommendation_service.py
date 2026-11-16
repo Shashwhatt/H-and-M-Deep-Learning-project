@@ -1,3 +1,4 @@
+
 import json
 
 import tensorflow as tf
@@ -32,7 +33,7 @@ class RecommendationService:
         if user_id not in self.customer_id_set:
             raise ValueError(f"Unknown customer ID: {user_id}")
 
-        # Retrieve customer features from Redis
+        # Retrieve customer features from Redis.
         redis_key = f"user_features:{user_id}"
         raw_features = self.redis_service.get_user_features(redis_key)
 
@@ -43,19 +44,66 @@ class RecommendationService:
 
         try:
             user_features = json.loads(raw_features)
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, TypeError) as exc:
             raise RuntimeError(
                 "Invalid customer feature data in Redis."
             ) from exc
 
+        if not isinstance(user_features, dict):
+            raise RuntimeError("Customer features must be a JSON object.")
+
         if user_features.get("customer_id") != user_id:
             raise RuntimeError("Customer feature ID mismatch in Redis.")
 
-        # Generate recommendations using the current ID-based query tower
-        user_embedding = self.model.query_model({
-            "customer_id": tf.constant([user_id])
-        })
+        # Validate all required context-aware features.
+        required_features = [
+            "age",
+            "age_missing",
+            "club_member_status_id",
+            "fashion_news_frequency_id",
+        ]
 
+        missing_features = [
+            feature
+            for feature in required_features
+            if feature not in user_features
+        ]
+
+        if missing_features:
+            raise RuntimeError(
+                f"Customer features missing from Redis: {missing_features}"
+            )
+
+        try:
+            # Prepare all five inputs required by the query tower.
+            query_features = {
+                "customer_id": tf.constant([user_id]),
+                "age": tf.constant(
+                    [float(user_features["age"])],
+                    dtype=tf.float32,
+                ),
+                "age_missing": tf.constant(
+                    [int(user_features["age_missing"])],
+                    dtype=tf.int64,
+                ),
+                "club_member_status_id": tf.constant(
+                    [int(user_features["club_member_status_id"])],
+                    dtype=tf.int64,
+                ),
+                "fashion_news_frequency_id": tf.constant(
+                    [int(user_features["fashion_news_frequency_id"])],
+                    dtype=tf.int64,
+                ),
+            }
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise RuntimeError(
+                "Customer features in Redis contain invalid values."
+            ) from exc
+
+        # Generate context-aware customer embedding.
+        user_embedding = self.model.query_model(query_features)
+
+        # Calculate similarity scores against all article embeddings.
         scores = tf.linalg.matmul(
             user_embedding,
             self.candidate_embeddings,
